@@ -9,8 +9,8 @@
     <style>
         :root { --correct: #6aaa64; --present: #c9b458; --absent: #787c7e; --tile-border: #d3d6da; --accent: #007AFF; }
         
-        /* Changed: Allow the body to scroll naturally */
-        html, body { width: 100%; margin: 0; padding: 0; background: #fff; overflow-x: hidden; }
+        /* Removed fixed positioning to prevent the "snap back" effect */
+        html, body { width: 100%; margin: 0; padding: 0; background: #fff; -webkit-text-size-adjust: 100%; }
         body { font-family: -apple-system, sans-serif; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
         
         header { width: 100%; border-bottom: 1px solid #eee; text-align: center; padding: 10px 0; font-weight: 800; font-size: 20px; background: white; }
@@ -40,7 +40,6 @@
             border-radius: 8px; font-size: 14px; font-weight: bold; width: 160px;
         }
 
-        /* Changed: Removed flex: 1 and overflow-y: auto so the whole page scrolls */
         #game-container { 
             display: flex; 
             flex-direction: column; 
@@ -52,7 +51,8 @@
         #board { 
             display: grid; 
             gap: 6px; 
-            padding-bottom: 600px; /* Large padding to allow final rows to scroll up */
+            /* Added massive padding to ensure the last row can stay at the very top of the screen */
+            padding-bottom: 80vh; 
         }
         
         .tile {
@@ -65,7 +65,7 @@
         .present { background: var(--present); color: white; border-color: var(--present); }
         .absent { background: var(--absent); color: white; border-color: var(--absent); }
 
-        #hidden-input { position: absolute; top: 0; opacity: 0; pointer-events: none; }
+        #hidden-input { position: absolute; bottom: 0; left: 0; opacity: 0; pointer-events: none; }
         .message { font-size: 16px; font-weight: 700; color: #333; height: 20px; margin-bottom: 5px; }
     </style>
 </head>
@@ -157,7 +157,7 @@
                 tile.id = 'tile-' + i;
                 board.appendChild(tile);
             }
-            window.scrollTo(0, 0);
+            window.scrollTo({ top: 0 });
         }
 
         function updateBoard() {
@@ -194,22 +194,19 @@
                     }
                 }
             }
-            
-            // Only scroll while typing if we've already scrolled past the header
-            if (window.scrollY > 0) handleSmartScroll();
         }
 
-        function handleSmartScroll() {
+        function handleOneGuessScroll() {
             const activeRowIndex = guesses.length;
             const targetTile = document.getElementById('tile-' + (activeRowIndex * WORD_LENGTH));
             
             if (targetTile) {
                 const rect = targetTile.getBoundingClientRect();
-                const safetyLine = window.innerHeight * 0.55;
-                
-                // If the current row is below the keyboard line, scroll down by roughly one row height (56px)
-                if (rect.bottom > safetyLine) {
-                    window.scrollBy({ top: 60, behavior: 'smooth' });
+                // If the next row is in the bottom half of the screen
+                if (rect.bottom > window.innerHeight * 0.5) {
+                    // Force scroll down by exactly one tile + gap height
+                    const scrollAmount = 56; 
+                    window.scrollBy({ top: scrollAmount, left: 0, behavior: 'smooth' });
                 }
             }
         }
@@ -243,8 +240,8 @@
                 document.getElementById('hidden-input').value = "";
                 updateBoard();
                 
-                // On enter, trigger a check to see if we need to nudge the screen down for the next guess
-                handleSmartScroll();
+                // Only scroll after the guess is submitted
+                setTimeout(handleOneGuessScroll, 50);
             }
         });
 
