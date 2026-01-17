@@ -8,33 +8,51 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <style>
         :root { --correct: #6aaa64; --present: #c9b458; --absent: #787c7e; --tile-border: #d3d6da; --accent: #007AFF; }
-        html, body { overflow: hidden; position: fixed; width: 100%; height: 100%; }
-        body { font-family: -apple-system, sans-serif; display: flex; flex-direction: column; align-items: center; margin: 0; background: #fff; }
-        header { width: 100%; border-bottom: 1px solid #eee; text-align: center; padding: 10px 0; font-weight: 800; font-size: 24px; }
+        
+        /* Prevent background scrolling */
+        html, body { overflow: hidden; position: fixed; width: 100%; height: 100%; margin: 0; padding: 0; background: #fff; }
+        body { font-family: -apple-system, sans-serif; display: flex; flex-direction: column; align-items: center; }
+        
+        header { width: 100%; border-bottom: 1px solid #eee; text-align: center; padding: 15px 0; font-weight: 800; font-size: 24px; background: white; z-index: 10; }
         
         .controls { 
             display: flex; flex-direction: column; align-items: center;
-            gap: 12px; padding: 15px; background: #f8f8f8; width: 100%; border-bottom: 1px solid #eee;
+            gap: 15px; padding: 20px; background: #f9f9f9; width: 100%; border-bottom: 1px solid #eee;
+            z-index: 20; position: relative;
         }
-        .input-row { display: flex; gap: 15px; justify-content: center; width: 100%; }
-        .control-group { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 13px; font-weight: bold; color: #666; }
+
+        .input-row { display: flex; gap: 20px; justify-content: center; width: 100%; }
         
-        /* Matching the original smaller size for both */
-        select, input[type="number"] { 
-            height: 45px; width: 65px;
-            padding: 5px; border-radius: 8px; border: 1px solid #ccc; 
-            font-size: 18px; background: white; text-align: center;
-            display: block;
+        .control-group { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+        .control-group label { font-size: 12px; font-weight: bold; color: #555; text-transform: uppercase; }
+
+        /* FORCED UNIFORM SIZE FOR BOTH BOXES */
+        .box-style {
+            height: 50px !important; 
+            width: 80px !important;
+            min-width: 80px !important;
+            max-width: 80px !important;
+            padding: 0 !important;
+            border-radius: 10px; 
+            border: 2px solid #bbb; 
+            font-size: 20px; 
+            background: white; 
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            -webkit-appearance: none; /* Kills default iOS style */
+            pointer-events: auto !important;
         }
         
         button#new-game-btn {
-            background: var(--accent); color: white; border: none; height: 48px;
-            border-radius: 10px; font-size: 17px; font-weight: bold; width: 180px;
-            margin-top: 5px;
+            background: var(--accent); color: white; border: none; height: 50px;
+            border-radius: 10px; font-size: 18px; font-weight: bold; width: 180px;
+            pointer-events: auto !important;
         }
 
-        #game-container { flex: 1; display: flex; flex-direction: column; align-items: center; padding-top: 15px; width: 100%; }
-        #board { display: grid; gap: 6px; margin-bottom: 20px; }
+        #game-container { flex: 1; display: flex; flex-direction: column; align-items: center; padding-top: 20px; width: 100%; }
+        #board { display: grid; gap: 6px; }
         
         .tile {
             width: 52px; height: 52px; border: 2px solid var(--tile-border);
@@ -46,33 +64,23 @@
         .present { background: var(--present); color: white; border-color: var(--present); }
         .absent { background: var(--absent); color: white; border-color: var(--absent); }
 
-        .shake { animation: shake 0.4s; }
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-4px); }
-            75% { transform: translateX(4px); }
-        }
-
-        #hidden-input { position: absolute; top: 0; opacity: 0; font-size: 16px; width: 1px; height: 1px; pointer-events: none; }
-        .message { font-size: 18px; font-weight: 700; color: #333; height: 25px; margin-bottom: 10px; text-align: center; }
-        
-        /* Ensure disabled looks obvious but clear */
-        :disabled { background: #eeeeee !important; color: #aaa !important; opacity: 1; }
+        #hidden-input { position: absolute; top: 0; opacity: 0; pointer-events: none; }
+        .message { font-size: 18px; font-weight: 700; color: #333; height: 25px; margin-bottom: 10px; }
     </style>
 </head>
 <body onclick="focusInput()">
 
     <header>DASHLE</header>
     
-    <div class="controls">
+    <div class="controls" onclick="event.stopPropagation()">
         <div class="input-row">
             <div class="control-group">
-                <label>LENGTH</label>
-                <select id="lenSelect"></select>
+                <label>Length</label>
+                <select id="lenSelect" class="box-style"></select>
             </div>
             <div class="control-group">
-                <label>GUESSES</label>
-                <input type="number" id="guessInput" value="6" min="1" max="15">
+                <label>Guesses</label>
+                <input type="number" id="guessInput" class="box-style" value="6" min="1" max="15">
             </div>
         </div>
         <button id="new-game-btn" onclick="resetGame()">NEW GAME</button>
@@ -113,15 +121,11 @@
                 });
                 resetGame();
             } catch (e) {
-                document.getElementById('message').textContent = "words.json error";
+                document.getElementById('message').textContent = "File Error";
             }
         }
 
         function resetGame() {
-            // Re-enable everything
-            document.getElementById('lenSelect').disabled = false;
-            document.getElementById('guessInput').disabled = false;
-
             WORD_LENGTH = parseInt(document.getElementById('lenSelect').value) || 5;
             MAX_GUESSES = parseInt(document.getElementById('guessInput').value) || 6;
             
@@ -168,6 +172,9 @@
                     } else if (i === guesses.length) {
                         tile.textContent = currentGuess[j] || "";
                         tile.className = 'tile';
+                    } else {
+                        tile.textContent = "";
+                        tile.className = 'tile';
                     }
                 }
             }
@@ -187,23 +194,17 @@
                 if (currentGuess.length !== WORD_LENGTH) return;
                 
                 if (!currentValidList.includes(currentGuess)) {
-                    showMessage("Invalid Word");
-                    const board = document.getElementById('board');
-                    board.classList.add('shake');
-                    setTimeout(() => board.classList.remove('shake'), 400);
+                    document.getElementById('message').textContent = "Invalid Word";
+                    setTimeout(() => { if(!gameOver) document.getElementById('message').textContent = ""; }, 2000);
                     return;
                 }
 
-                // Lock settings only after a successful first guess
-                document.getElementById('lenSelect').disabled = true;
-                document.getElementById('guessInput').disabled = true;
-
                 guesses.push(currentGuess);
                 if (currentGuess === targetWord) { 
-                    showMessage("You got it! 🎉"); 
+                    document.getElementById('message').textContent = "You got it! 🎉"; 
                     gameOver = true; 
                 } else if (guesses.length === MAX_GUESSES) { 
-                    showMessage("Word: " + targetWord); 
+                    document.getElementById('message').textContent = "Word: " + targetWord; 
                     gameOver = true; 
                 }
                 currentGuess = "";
@@ -211,11 +212,6 @@
                 updateBoard();
             }
         });
-
-        function showMessage(txt) {
-            document.getElementById('message').textContent = txt;
-            if(!gameOver) setTimeout(() => { document.getElementById('message').textContent = ""; }, 2000);
-        }
 
         loadData();
     </script>
