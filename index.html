@@ -9,36 +9,35 @@
     <style>
         :root { --correct: #6aaa64; --present: #c9b458; --absent: #787c7e; --tile-border: #d3d6da; --accent: #007AFF; }
         
-        /* Fixed position body to prevent the whole page from bouncing */
         html, body { overflow: hidden; position: fixed; width: 100%; height: 100%; margin: 0; padding: 0; background: #fff; }
         body { font-family: -apple-system, sans-serif; display: flex; flex-direction: column; align-items: center; }
         
-        header { width: 100%; border-bottom: 1px solid #eee; text-align: center; padding: 15px 0; font-weight: 800; font-size: 24px; background: white; z-index: 10; flex-shrink: 0; }
+        header { width: 100%; border-bottom: 1px solid #eee; text-align: center; padding: 8px 0; font-weight: 800; font-size: 20px; background: white; flex-shrink: 0; }
         
         .controls { 
             display: flex; flex-direction: column; align-items: center;
-            gap: 15px; padding: 20px; background: #f9f9f9; width: 100%; border-bottom: 1px solid #eee;
-            z-index: 20; position: relative; flex-shrink: 0;
+            gap: 8px; padding: 10px; background: #f9f9f9; width: 100%; border-bottom: 1px solid #eee;
+            flex-shrink: 0;
         }
 
-        .input-row { display: flex; gap: 20px; justify-content: center; width: 100%; }
-        .control-group { display: flex; flex-direction: column; align-items: center; gap: 8px; }
-        .control-group label { font-size: 12px; font-weight: bold; color: #555; text-transform: uppercase; }
+        .input-row { display: flex; gap: 10px; justify-content: center; width: 100%; }
+        .control-group { display: flex; align-items: center; gap: 5px; }
+        .control-group label { font-size: 11px; font-weight: bold; color: #555; text-transform: uppercase; }
 
         .box-style {
-            height: 50px !important; 
-            width: 95px !important;
-            border-radius: 10px; 
-            border: 2px solid #bbb; 
-            font-size: 15px; 
+            height: 35px !important; 
+            width: 85px !important;
+            border-radius: 6px; 
+            border: 1px solid #bbb; 
+            font-size: 14px; 
             background: white; 
             text-align: center;
             -webkit-appearance: none;
         }
         
         button#new-game-btn {
-            background: var(--accent); color: white; border: none; height: 50px;
-            border-radius: 10px; font-size: 18px; font-weight: bold; width: 180px;
+            background: var(--accent); color: white; border: none; height: 35px;
+            border-radius: 6px; font-size: 14px; font-weight: bold; width: 150px;
         }
 
         #game-container { 
@@ -46,22 +45,22 @@
             display: flex; 
             flex-direction: column; 
             align-items: center; 
-            padding-top: 20px; 
             width: 100%; 
             overflow-y: auto; 
-            -webkit-overflow-scrolling: touch; /* Smooth scrolling for iOS */
+            -webkit-overflow-scrolling: touch;
+            padding-top: 10px;
         }
         
         #board { 
             display: grid; 
             gap: 6px; 
-            padding-bottom: 300px; /* High padding ensures the row can actually scroll above the keyboard */
+            padding-bottom: 400px; /* Massive padding so bottom rows can reach the top */
         }
         
         .tile {
-            width: 52px; height: 52px; border: 2px solid var(--tile-border);
+            width: 48px; height: 48px; border: 2px solid var(--tile-border);
             display: flex; align-items: center; justify-content: center;
-            font-size: 26px; font-weight: bold; text-transform: uppercase;
+            font-size: 22px; font-weight: bold; text-transform: uppercase;
         }
 
         .correct { background: var(--correct); color: white; border-color: var(--correct); }
@@ -69,7 +68,7 @@
         .absent { background: var(--absent); color: white; border-color: var(--absent); }
 
         #hidden-input { position: absolute; top: 0; opacity: 0; pointer-events: none; }
-        .message { font-size: 18px; font-weight: 700; color: #333; height: 25px; margin-bottom: 10px; }
+        .message { font-size: 16px; font-weight: 700; color: #333; height: 20px; margin-bottom: 5px; }
     </style>
 </head>
 <body onclick="focusInput()">
@@ -79,11 +78,11 @@
     <div class="controls" onclick="event.stopPropagation()">
         <div class="input-row">
             <div class="control-group">
-                <label>Length</label>
+                <label>Len</label>
                 <select id="lenSelect" class="box-style"></select>
             </div>
             <div class="control-group">
-                <label>Guesses</label>
+                <label>Try</label>
                 <select id="guessSelect" class="box-style">
                     <option value="1">1</option><option value="2">2</option><option value="3">3</option>
                     <option value="4">4</option><option value="5">5</option><option value="6" selected>6</option>
@@ -149,7 +148,7 @@
         function initBoard() {
             const board = document.getElementById('board');
             board.innerHTML = "";
-            const tileSize = WORD_LENGTH > 5 ? 45 : 52;
+            const tileSize = WORD_LENGTH > 6 ? 40 : 48;
             board.style.gridTemplateColumns = `repeat(${WORD_LENGTH}, ${tileSize}px)`;
             let rowsToDraw = MAX_GUESSES === 1000 ? 1 : MAX_GUESSES;
             for (let i = 0; i < rowsToDraw * WORD_LENGTH; i++) {
@@ -165,7 +164,7 @@
 
         function updateBoard() {
             const board = document.getElementById('board');
-            const tileSize = WORD_LENGTH > 5 ? 45 : 52;
+            const tileSize = WORD_LENGTH > 6 ? 40 : 48;
 
             if (MAX_GUESSES === 1000 && !gameOver) {
                 const requiredTiles = (guesses.length + 1) * WORD_LENGTH;
@@ -198,10 +197,11 @@
                 }
             }
 
-            // AUTO-SCROLL FIX: Scroll the specific current row into view
-            const currentRowStartTile = document.getElementById('tile-' + (guesses.length * WORD_LENGTH));
-            if (currentRowStartTile) {
-                currentRowStartTile.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // SCROLL IMPROVEMENT: Scroll to the start of the current active row
+            const activeRowIndex = guesses.length;
+            const targetTile = document.getElementById('tile-' + (activeRowIndex * WORD_LENGTH));
+            if (targetTile) {
+                targetTile.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
         }
 
