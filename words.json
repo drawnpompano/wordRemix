@@ -1,0 +1,14 @@
+{
+  "3": {
+    "answers": ["CAT", "DOG", "SUN"],
+    "valid": ["CAT", "DOG", "SUN", "TEN", "HAT", "POT"]
+  },
+  "4": {
+    "answers": ["DASH", "GOLD", "BLUE"],
+    "valid": ["DASH", "GOLD", "BLUE", "WIND", "FIRE", "SHIP"]
+  },
+  "5": {
+    "answers": ["SMART", "PLANT", "LIGHT"],
+    "valid": ["SMART", "PLANT", "LIGHT", "BOOKS", "TABLE", "CHAIR"]
+  }
+}
