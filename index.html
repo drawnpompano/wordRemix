@@ -10,7 +10,7 @@
         :root { --correct: #6aaa64; --present: #c9b458; --absent: #787c7e; --tile-border: #d3d6da; --accent: #007AFF; }
         html, body { overflow: hidden; position: fixed; width: 100%; height: 100%; margin: 0; padding: 0; background: #fff; }
         body { font-family: -apple-system, sans-serif; display: flex; flex-direction: column; align-items: center; }
-        header { width: 100%; border-bottom: 1px solid #eee; text-align: center; padding: 12px 0; font-weight: 800; font-size: 24px; background: white; }
+        header { width: 100%; border-bottom: 1px solid #eee; text-align: center; padding: 12px 0; font-weight: 800; font-size: 24px; }
         
         .controls { 
             display: flex; flex-direction: column; align-items: center;
@@ -20,7 +20,7 @@
         .control-group { display: flex; flex-direction: column; align-items: center; gap: 5px; }
         .control-group label { font-size: 11px; font-weight: bold; color: #555; }
 
-        /* FORCED IDENTICAL SIZE FOR BOTH BOXES */
+        /* BOXES: Identical 80px width and 45px height */
         .box-style {
             height: 45px !important; 
             width: 80px !important;
@@ -30,7 +30,6 @@
             background: white; 
             text-align: center;
             -webkit-appearance: none;
-            display: block;
         }
         
         button#new-game-btn {
@@ -38,10 +37,8 @@
             border-radius: 10px; font-size: 18px; font-weight: bold; width: 220px;
         }
 
-        #game-container { flex: 1; display: flex; flex-direction: column; align-items: center; padding-top: 15px; width: 100%; overflow-y: auto; }
-        
-        /* THE DYNAMIC GRID */
-        #board { display: grid; gap: 6px; justify-content: center; transition: all 0.2s; }
+        #game-container { flex: 1; display: flex; flex-direction: column; align-items: center; padding-top: 15px; width: 100%; }
+        #board { display: grid; gap: 6px; justify-content: center; }
         
         .tile {
             width: 50px; height: 50px; border: 2px solid var(--tile-border);
@@ -73,7 +70,7 @@
                 <input type="number" id="guessInput" class="box-style" value="6" min="1" max="15">
             </div>
         </div>
-        <button id="new-game-btn" onclick="handleNewGame()">NEW GAME</button>
+        <button id="new-game-btn" onclick="resetGame()">NEW GAME</button>
     </div>
 
     <input type="text" id="hidden-input" autocomplete="off" spellcheck="false">
@@ -109,34 +106,24 @@
                     if(len == "5") opt.selected = true;
                     selector.appendChild(opt);
                 });
-                handleNewGame(); // Initial start
+                resetGame();
             } catch (e) {
                 document.getElementById('message').textContent = "words.json error";
             }
         }
 
-        // Dedicated handler for the button click
-        function handleNewGame() {
-            // Unlock inputs first
+        function resetGame() {
+            // Unlock inputs
             document.getElementById('lenSelect').disabled = false;
             document.getElementById('guessInput').disabled = false;
 
-            // Read the fresh values
+            // Read values
             WORD_LENGTH = parseInt(document.getElementById('lenSelect').value);
             MAX_GUESSES = parseInt(document.getElementById('guessInput').value);
 
-            // Verify data exists for this length
-            if (!ALL_DATA[WORD_LENGTH]) {
-                alert("No words for length " + WORD_LENGTH);
-                return;
-            }
-
-            // Start reset
-            resetState();
-        }
-
-        function resetState() {
             const data = ALL_DATA[WORD_LENGTH];
+            if (!data) return;
+
             targetWord = data.answers[Math.floor(Math.random() * data.answers.length)].toUpperCase();
             currentValidList = data.valid.map(v => v.toUpperCase());
             
@@ -151,23 +138,16 @@
 
         function initBoard() {
             const board = document.getElementById('board');
-            board.innerHTML = ""; // This wipes the previous boxes away
-            
-            // Adjust grid columns based on word length
+            board.innerHTML = "";
             board.style.gridTemplateColumns = `repeat(${WORD_LENGTH}, auto)`;
             
-            // Adjust box size so 7+ letters fit on iPhone screens
-            let tileSize = 50;
-            if (WORD_LENGTH > 5) tileSize = 42;
-            if (WORD_LENGTH > 7) tileSize = 35;
+            let tileSize = WORD_LENGTH > 5 ? 42 : 50;
 
-            // Generate the exact number of boxes requested
             for (let i = 0; i < MAX_GUESSES * WORD_LENGTH; i++) {
                 const tile = document.createElement('div');
                 tile.className = 'tile';
                 tile.style.width = tileSize + 'px';
                 tile.style.height = tileSize + 'px';
-                tile.style.fontSize = (tileSize * 0.5) + 'px';
                 tile.id = 'tile-' + i;
                 board.appendChild(tile);
             }
@@ -178,7 +158,6 @@
                 for (let j = 0; j < WORD_LENGTH; j++) {
                     const tile = document.getElementById('tile-' + (i * WORD_LENGTH + j));
                     if (!tile) continue;
-                    
                     if (guesses[i]) {
                         tile.textContent = guesses[i][j];
                         if (targetWord[j] === guesses[i][j]) tile.className = 'tile correct';
@@ -199,11 +178,8 @@
 
         document.getElementById('hidden-input').addEventListener('input', (e) => {
             if (gameOver) return;
-            
-            // Lock inputs once typing starts
             document.getElementById('lenSelect').disabled = true;
             document.getElementById('guessInput').disabled = true;
-
             currentGuess = e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, WORD_LENGTH);
             updateBoard();
         });
@@ -212,13 +188,11 @@
             if (gameOver) return;
             if (e.key === "Enter") {
                 if (currentGuess.length !== WORD_LENGTH) return;
-                
                 if (!currentValidList.includes(currentGuess)) {
                     document.getElementById('message').textContent = "Invalid Word";
                     setTimeout(() => { if(!gameOver) document.getElementById('message').textContent = ""; }, 2000);
                     return;
                 }
-
                 guesses.push(currentGuess);
                 if (currentGuess === targetWord) { 
                     document.getElementById('message').textContent = "You got it! 🎉"; 
