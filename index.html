@@ -9,15 +9,15 @@
     <style>
         :root { --correct: #6aaa64; --present: #c9b458; --absent: #787c7e; --tile-border: #d3d6da; --accent: #007AFF; }
         
-        /* Removed fixed positioning to prevent the "snap back" effect */
         html, body { width: 100%; margin: 0; padding: 0; background: #fff; -webkit-text-size-adjust: 100%; }
         body { font-family: -apple-system, sans-serif; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
         
-        header { width: 100%; border-bottom: 1px solid #eee; text-align: center; padding: 10px 0; font-weight: 800; font-size: 20px; background: white; }
+        header { width: 100%; border-bottom: 1px solid #eee; text-align: center; padding: 10px 0; font-weight: 800; font-size: 20px; background: white; flex-shrink: 0; }
         
         .controls { 
             display: flex; flex-direction: column; align-items: center;
             gap: 8px; padding: 10px; background: #f9f9f9; width: 100%; border-bottom: 1px solid #eee;
+            flex-shrink: 0;
         }
 
         .input-row { display: flex; gap: 10px; justify-content: center; width: 100%; }
@@ -51,8 +51,7 @@
         #board { 
             display: grid; 
             gap: 6px; 
-            /* Added massive padding to ensure the last row can stay at the very top of the screen */
-            padding-bottom: 80vh; 
+            padding-bottom: 500px; /* Buffer to allow scrolling */
         }
         
         .tile {
@@ -65,7 +64,8 @@
         .present { background: var(--present); color: white; border-color: var(--present); }
         .absent { background: var(--absent); color: white; border-color: var(--absent); }
 
-        #hidden-input { position: absolute; bottom: 0; left: 0; opacity: 0; pointer-events: none; }
+        /* Moved back to top so focusing doesn't scroll the page down */
+        #hidden-input { position: absolute; top: 0; left: 0; opacity: 0; pointer-events: none; }
         .message { font-size: 16px; font-weight: 700; color: #333; height: 20px; margin-bottom: 5px; }
     </style>
 </head>
@@ -157,25 +157,10 @@
                 tile.id = 'tile-' + i;
                 board.appendChild(tile);
             }
-            window.scrollTo({ top: 0 });
+            window.scrollTo(0, 0);
         }
 
         function updateBoard() {
-            const board = document.getElementById('board');
-            const tileSize = WORD_LENGTH > 6 ? 42 : 50;
-
-            if (MAX_GUESSES === 1000 && !gameOver) {
-                const requiredTiles = (guesses.length + 1) * WORD_LENGTH;
-                while (board.children.length < requiredTiles) {
-                    const tile = document.createElement('div');
-                    tile.className = 'tile';
-                    tile.style.width = tileSize + 'px';
-                    tile.style.height = tileSize + 'px';
-                    tile.id = 'tile-' + board.children.length;
-                    board.appendChild(tile);
-                }
-            }
-
             for (let i = 0; i < (MAX_GUESSES === 1000 ? guesses.length + 1 : MAX_GUESSES); i++) {
                 for (let j = 0; j < WORD_LENGTH; j++) {
                     const tile = document.getElementById('tile-' + (i * WORD_LENGTH + j));
@@ -202,11 +187,11 @@
             
             if (targetTile) {
                 const rect = targetTile.getBoundingClientRect();
-                // If the next row is in the bottom half of the screen
-                if (rect.bottom > window.innerHeight * 0.5) {
-                    // Force scroll down by exactly one tile + gap height
-                    const scrollAmount = 56; 
-                    window.scrollBy({ top: scrollAmount, left: 0, behavior: 'smooth' });
+                const safetyLine = window.innerHeight * 0.5;
+                
+                // Only scroll if the next row is actually in the keyboard zone
+                if (rect.bottom > safetyLine) {
+                    window.scrollBy({ top: 56, behavior: 'smooth' });
                 }
             }
         }
@@ -216,7 +201,8 @@
         document.getElementById('hidden-input').addEventListener('input', (e) => {
             if (gameOver) return;
             currentGuess = e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, WORD_LENGTH);
-            updateBoard();
+            updateBoard(); 
+            // handleOneGuessScroll is NOT here anymore
         });
 
         document.addEventListener('keydown', (e) => {
@@ -240,8 +226,8 @@
                 document.getElementById('hidden-input').value = "";
                 updateBoard();
                 
-                // Only scroll after the guess is submitted
-                setTimeout(handleOneGuessScroll, 50);
+                // We only check for a scroll nudge after a word is submitted
+                setTimeout(handleOneGuessScroll, 100);
             }
         });
 
