@@ -9,15 +9,16 @@
     <style>
         :root { --correct: #6aaa64; --present: #c9b458; --absent: #787c7e; --tile-border: #d3d6da; --accent: #007AFF; }
         
+        /* Fixed position body to prevent the whole page from bouncing */
         html, body { overflow: hidden; position: fixed; width: 100%; height: 100%; margin: 0; padding: 0; background: #fff; }
         body { font-family: -apple-system, sans-serif; display: flex; flex-direction: column; align-items: center; }
         
-        header { width: 100%; border-bottom: 1px solid #eee; text-align: center; padding: 15px 0; font-weight: 800; font-size: 24px; background: white; z-index: 10; }
+        header { width: 100%; border-bottom: 1px solid #eee; text-align: center; padding: 15px 0; font-weight: 800; font-size: 24px; background: white; z-index: 10; flex-shrink: 0; }
         
         .controls { 
             display: flex; flex-direction: column; align-items: center;
             gap: 15px; padding: 20px; background: #f9f9f9; width: 100%; border-bottom: 1px solid #eee;
-            z-index: 20; position: relative;
+            z-index: 20; position: relative; flex-shrink: 0;
         }
 
         .input-row { display: flex; gap: 20px; justify-content: center; width: 100%; }
@@ -27,25 +28,17 @@
         .box-style {
             height: 50px !important; 
             width: 95px !important;
-            min-width: 95px !important;
-            max-width: 95px !important;
-            padding: 0 !important;
             border-radius: 10px; 
             border: 2px solid #bbb; 
             font-size: 15px; 
             background: white; 
             text-align: center;
-            display: flex;
-            align-items: center;
-            justify-content: center;
             -webkit-appearance: none;
-            pointer-events: auto !important;
         }
         
         button#new-game-btn {
             background: var(--accent); color: white; border: none; height: 50px;
             border-radius: 10px; font-size: 18px; font-weight: bold; width: 180px;
-            pointer-events: auto !important;
         }
 
         #game-container { 
@@ -55,14 +48,14 @@
             align-items: center; 
             padding-top: 20px; 
             width: 100%; 
-            overflow-y: auto; /* Enable vertical scrolling */
-            scroll-behavior: smooth; /* Make the auto-scroll look nice */
+            overflow-y: auto; 
+            -webkit-overflow-scrolling: touch; /* Smooth scrolling for iOS */
         }
         
         #board { 
             display: grid; 
             gap: 6px; 
-            padding-bottom: 60px; /* Space at the bottom so we can see the last row clearly */
+            padding-bottom: 300px; /* High padding ensures the row can actually scroll above the keyboard */
         }
         
         .tile {
@@ -92,24 +85,17 @@
             <div class="control-group">
                 <label>Guesses</label>
                 <select id="guessSelect" class="box-style">
-                    <option value="1">1</option>
-                    <option value="2">2</option>
-                    <option value="3">3</option>
-                    <option value="4">4</option>
-                    <option value="5">5</option>
-                    <option value="6" selected>6</option>
-                    <option value="7">7</option>
-                    <option value="8">8</option>
-                    <option value="9">9</option>
-                    <option value="10">10</option>
-                    <option value="1000">Unlimited</option>
+                    <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+                    <option value="4">4</option><option value="5">5</option><option value="6" selected>6</option>
+                    <option value="7">7</option><option value="8">8</option><option value="9">9</option>
+                    <option value="10">10</option><option value="1000">Unlimited</option>
                 </select>
             </div>
         </div>
         <button id="new-game-btn" onclick="resetGame()">NEW GAME</button>
     </div>
 
-    <input type="text" id="hidden-input" autocomplete="off" spellcheck="false">
+    <input type="text" id="hidden-input" autocomplete="off" spellcheck="false" inputmode="text">
 
     <div id="game-container">
         <div class="message" id="message"></div>
@@ -135,8 +121,7 @@
                 selector.innerHTML = "";
                 lengths.forEach(len => {
                     let opt = document.createElement('option');
-                    opt.value = len;
-                    opt.textContent = len;
+                    opt.value = len; opt.textContent = len;
                     if(len == "5") opt.selected = true;
                     selector.appendChild(opt);
                 });
@@ -149,36 +134,6 @@
         function resetGame() {
             WORD_LENGTH = parseInt(document.getElementById('lenSelect').value) || 5;
             MAX_GUESSES = parseInt(document.getElementById('guessSelect').value) || 6;
-            
             const data = ALL_DATA[WORD_LENGTH];
             if (!data) return;
-
-            targetWord = data.answers[Math.floor(Math.random() * data.answers.length)].toUpperCase();
-            currentValidList = data.valid.map(v => v.toUpperCase());
-            
-            guesses = [];
-            currentGuess = "";
-            gameOver = false;
-            document.getElementById('message').textContent = "";
-            document.getElementById('hidden-input').value = "";
-            initBoard();
-        }
-
-        function initBoard() {
-            const board = document.getElementById('board');
-            board.innerHTML = "";
-            const tileSize = WORD_LENGTH > 5 ? 45 : 52;
-            board.style.gridTemplateColumns = `repeat(${WORD_LENGTH}, ${tileSize}px)`;
-            
-            let rowsToDraw = MAX_GUESSES === 1000 ? 1 : MAX_GUESSES;
-
-            for (let i = 0; i < rowsToDraw * WORD_LENGTH; i++) {
-                const tile = document.createElement('div');
-                tile.className = 'tile';
-                tile.style.width = tileSize + 'px';
-                tile.style.height = tileSize + 'px';
-                tile.id = 'tile-' + i;
-                board.appendChild(tile);
-            }
-            // Reset scroll to top on new game
-            document.getElementById('game-container').scrollTop =
+            targetWord = data
