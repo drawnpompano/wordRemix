@@ -9,7 +9,6 @@
     <style>
         :root { --correct: #6aaa64; --present: #c9b458; --absent: #787c7e; --tile-border: #d3d6da; --accent: #007AFF; }
         
-        /* Prevent background scrolling */
         html, body { overflow: hidden; position: fixed; width: 100%; height: 100%; margin: 0; padding: 0; background: #fff; }
         body { font-family: -apple-system, sans-serif; display: flex; flex-direction: column; align-items: center; }
         
@@ -22,26 +21,24 @@
         }
 
         .input-row { display: flex; gap: 20px; justify-content: center; width: 100%; }
-        
         .control-group { display: flex; flex-direction: column; align-items: center; gap: 8px; }
         .control-group label { font-size: 12px; font-weight: bold; color: #555; text-transform: uppercase; }
 
-        /* FORCED UNIFORM SIZE FOR BOTH BOXES */
         .box-style {
             height: 50px !important; 
-            width: 90px !important; /* Slightly widened to fit the word "Unlimited" */
-            min-width: 90px !important;
-            max-width: 90px !important;
+            width: 95px !important;
+            min-width: 95px !important;
+            max-width: 95px !important;
             padding: 0 !important;
             border-radius: 10px; 
             border: 2px solid #bbb; 
-            font-size: 16px; /* Slightly smaller to fit "Unlimited" comfortably */
+            font-size: 15px; 
             background: white; 
             text-align: center;
             display: flex;
             align-items: center;
             justify-content: center;
-            -webkit-appearance: none; /* Kills default iOS style */
+            -webkit-appearance: none;
             pointer-events: auto !important;
         }
         
@@ -58,9 +55,15 @@
             align-items: center; 
             padding-top: 20px; 
             width: 100%; 
-            overflow-y: auto; /* Added so Unlimited games can scroll if needed */
+            overflow-y: auto; /* Enable vertical scrolling */
+            scroll-behavior: smooth; /* Make the auto-scroll look nice */
         }
-        #board { display: grid; gap: 6px; padding-bottom: 40px; }
+        
+        #board { 
+            display: grid; 
+            gap: 6px; 
+            padding-bottom: 60px; /* Space at the bottom so we can see the last row clearly */
+        }
         
         .tile {
             width: 52px; height: 52px; border: 2px solid var(--tile-border);
@@ -127,10 +130,8 @@
             try {
                 const response = await fetch('words.json');
                 ALL_DATA = await response.json();
-                
                 const selector = document.getElementById('lenSelect');
                 const lengths = Object.keys(ALL_DATA).sort((a,b) => a-b);
-                
                 selector.innerHTML = "";
                 lengths.forEach(len => {
                     let opt = document.createElement('option');
@@ -147,7 +148,6 @@
 
         function resetGame() {
             WORD_LENGTH = parseInt(document.getElementById('lenSelect').value) || 5;
-            // Now reading from guessSelect
             MAX_GUESSES = parseInt(document.getElementById('guessSelect').value) || 6;
             
             const data = ALL_DATA[WORD_LENGTH];
@@ -170,8 +170,6 @@
             const tileSize = WORD_LENGTH > 5 ? 45 : 52;
             board.style.gridTemplateColumns = `repeat(${WORD_LENGTH}, ${tileSize}px)`;
             
-            // If Unlimited, we don't draw 1000 rows at once. 
-            // We start with 1 empty row and add more as the user plays.
             let rowsToDraw = MAX_GUESSES === 1000 ? 1 : MAX_GUESSES;
 
             for (let i = 0; i < rowsToDraw * WORD_LENGTH; i++) {
@@ -182,79 +180,5 @@
                 tile.id = 'tile-' + i;
                 board.appendChild(tile);
             }
-        }
-
-        function updateBoard() {
-            const board = document.getElementById('board');
-            const tileSize = WORD_LENGTH > 5 ? 45 : 52;
-
-            // Handle Unlimited: Check if we need to add a new empty row
-            if (MAX_GUESSES === 1000 && !gameOver) {
-                const requiredTiles = (guesses.length + 1) * WORD_LENGTH;
-                while (board.children.length < requiredTiles) {
-                    const tile = document.createElement('div');
-                    tile.className = 'tile';
-                    tile.style.width = tileSize + 'px';
-                    tile.style.height = tileSize + 'px';
-                    tile.id = 'tile-' + board.children.length;
-                    board.appendChild(tile);
-                }
-            }
-
-            for (let i = 0; i < (MAX_GUESSES === 1000 ? guesses.length + 1 : MAX_GUESSES); i++) {
-                for (let j = 0; j < WORD_LENGTH; j++) {
-                    const tile = document.getElementById('tile-' + (i * WORD_LENGTH + j));
-                    if (!tile) continue;
-                    if (guesses[i]) {
-                        tile.textContent = guesses[i][j];
-                        if (targetWord[j] === guesses[i][j]) tile.className = 'tile correct';
-                        else if (targetWord.includes(guesses[i][j])) tile.className = 'tile present';
-                        else tile.className = 'tile absent';
-                    } else if (i === guesses.length) {
-                        tile.textContent = currentGuess[j] || "";
-                        tile.className = 'tile';
-                    } else {
-                        tile.textContent = "";
-                        tile.className = 'tile';
-                    }
-                }
-            }
-        }
-
-        function focusInput() { if (!gameOver) document.getElementById('hidden-input').focus(); }
-
-        document.getElementById('hidden-input').addEventListener('input', (e) => {
-            if (gameOver) return;
-            currentGuess = e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, WORD_LENGTH);
-            updateBoard();
-        });
-
-        document.addEventListener('keydown', (e) => {
-            if (gameOver) return;
-            if (e.key === "Enter") {
-                if (currentGuess.length !== WORD_LENGTH) return;
-                
-                if (!currentValidList.includes(currentGuess)) {
-                    document.getElementById('message').textContent = "Invalid Word";
-                    setTimeout(() => { if(!gameOver) document.getElementById('message').textContent = ""; }, 2000);
-                    return;
-                }
-
-                guesses.push(currentGuess);
-                if (currentGuess === targetWord) { 
-                    document.getElementById('message').textContent = "You got it! 🎉"; 
-                    gameOver = true; 
-                } else if (guesses.length === MAX_GUESSES) { 
-                    document.getElementById('message').textContent = "Word: " + targetWord; 
-                    gameOver = true; 
-                }
-                currentGuess = "";
-                document.getElementById('hidden-input').value = "";
-                updateBoard();
-            }
-        });
-
-        loadData();
-    </script>
-</body>
-</html>
+            // Reset scroll to top on new game
+            document.getElementById('game-container').scrollTop =
