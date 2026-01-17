@@ -7,19 +7,31 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <style>
-        :root { --correct: #6aaa64; --present: #c9b458; --absent: #787c7e; --tile-border: #d3d6da; }
+        :root { --correct: #6aaa64; --present: #c9b458; --absent: #787c7e; --tile-border: #d3d6da; --accent: #007AFF; }
         html, body { overflow: hidden; position: fixed; width: 100%; height: 100%; }
         body { font-family: -apple-system, sans-serif; display: flex; flex-direction: column; align-items: center; margin: 0; background: #fff; }
         header { width: 100%; border-bottom: 1px solid #eee; text-align: center; padding: 10px 0; font-weight: 800; font-size: 28px; }
         
         .controls { 
-            display: flex; flex-wrap: wrap; justify-content: center; 
-            gap: 15px; padding: 10px; background: #f8f8f8; width: 100%; border-bottom: 1px solid #eee;
+            display: flex; flex-direction: column; align-items: center;
+            gap: 15px; padding: 15px; background: #f8f8f8; width: 100%; border-bottom: 1px solid #eee;
         }
-        .control-group { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: bold; }
-        select { padding: 8px; border-radius: 8px; border: 1px solid #ccc; font-size: 16px; background: white; -webkit-appearance: none; }
+        .input-row { display: flex; gap: 20px; justify-content: center; width: 100%; }
+        .control-group { display: flex; flex-direction: column; align-items: center; gap: 5px; font-size: 14px; font-weight: bold; }
+        
+        /* Larger touch targets */
+        select, input[type="number"] { 
+            padding: 12px; border-radius: 10px; border: 1px solid #ccc; 
+            font-size: 18px; background: white; width: 80px; text-align: center;
+        }
+        
+        button#new-game-btn {
+            background: var(--accent); color: white; border: none; padding: 12px 30px;
+            border-radius: 10px; font-size: 18px; font-weight: bold; width: 80%; max-width: 250px;
+        }
+        button:active { opacity: 0.7; }
 
-        #game-container { flex: 1; display: flex; flex-direction: column; align-items: center; padding-top: 20px; width: 100%; }
+        #game-container { flex: 1; display: flex; flex-direction: column; align-items: center; padding-top: 15px; width: 100%; }
         #board { display: grid; gap: 8px; margin-bottom: 20px; }
         
         .tile {
@@ -32,7 +44,6 @@
         .present { background: var(--present); color: white; border-color: var(--present); }
         .absent { background: var(--absent); color: white; border-color: var(--absent); }
 
-        /* Animation for invalid words */
         .shake { animation: shake 0.4s; }
         @keyframes shake {
             0%, 100% { transform: translateX(0); }
@@ -42,6 +53,9 @@
 
         #hidden-input { position: absolute; top: 0; opacity: 0; font-size: 16px; width: 1px; height: 1px; }
         .message { font-size: 20px; font-weight: 800; color: #333; height: 30px; margin-bottom: 10px; text-align: center; }
+        
+        /* Visual cue for disabled inputs */
+        input:disabled, select:disabled { background: #e0e0e0; color: #888; border-color: #ddd; }
     </style>
 </head>
 <body onclick="focusInput()">
@@ -49,18 +63,17 @@
     <header>DASHLE</header>
     
     <div class="controls">
-        <div class="control-group">
-            <label>Length:</label>
-            <select id="lenSelect" onchange="resetGame()"></select>
+        <div class="input-row">
+            <div class="control-group">
+                <label>Length</label>
+                <select id="lenSelect"></select>
+            </div>
+            <div class="control-group">
+                <label>Guesses</label>
+                <input type="number" id="guessInput" value="6" min="1" max="12">
+            </div>
         </div>
-        <div class="control-group">
-            <label>Guesses:</label>
-            <select id="guessSelect" onchange="resetGame()">
-                <option value="4">4</option><option value="5">5</option>
-                <option value="6" selected>6</option><option value="7">7</option>
-                <option value="8">8</option>
-            </select>
-        </div>
+        <button id="new-game-btn" onclick="resetGame()">NEW GAME</button>
     </div>
 
     <input type="text" id="hidden-input" autocomplete="off" spellcheck="false">
@@ -78,6 +91,7 @@
         let guesses = [];
         let currentGuess = "";
         let gameOver = false;
+        let gameStarted = false;
         let currentValidList = [];
 
         const WIN_MESSAGES = ["You got it!", "Splendid!", "Amazing!", "Brilliant!", "Genius!", "Nice Job!"];
@@ -87,16 +101,15 @@
                 const response = await fetch('words.json');
                 ALL_DATA = await response.json();
                 
-                // --- Dynamic Choice Setup ---
                 const selector = document.getElementById('lenSelect');
                 const lengths = Object.keys(ALL_DATA).sort((a,b) => a-b);
                 
-                selector.innerHTML = ""; // Clear existing
+                selector.innerHTML = "";
                 lengths.forEach(len => {
                     let opt = document.createElement('option');
                     opt.value = len;
                     opt.innerHTML = len;
-                    if(len == "5") opt.selected = true; // Default to 5 if available
+                    if(len == "5") opt.selected = true;
                     selector.appendChild(opt);
                 });
 
@@ -107,21 +120,21 @@
         }
 
         function resetGame() {
-            const selector = document.getElementById('lenSelect');
-            if (!selector.value) return; 
+            // Unlock inputs
+            document.getElementById('lenSelect').disabled = false;
+            document.getElementById('guessInput').disabled = false;
 
-            WORD_LENGTH = parseInt(selector.value);
-            MAX_GUESSES = parseInt(document.getElementById('guessSelect').value);
+            WORD_LENGTH = parseInt(document.getElementById('lenSelect').value);
+            MAX_GUESSES = parseInt(document.getElementById('guessInput').value);
             
             const data = ALL_DATA[WORD_LENGTH];
             targetWord = data.answers[Math.floor(Math.random() * data.answers.length)].toUpperCase();
-            
-            // Sync valid list to current length
             currentValidList = data.valid.map(v => v.toUpperCase());
             
             guesses = [];
             currentGuess = "";
             gameOver = false;
+            gameStarted = false;
             document.getElementById('message').textContent = "";
             document.getElementById('hidden-input').value = "";
             initBoard();
@@ -163,10 +176,19 @@
             }
         }
 
+        function lockSettings() {
+            if (!gameStarted) {
+                gameStarted = true;
+                document.getElementById('lenSelect').disabled = true;
+                document.getElementById('guessInput').disabled = true;
+            }
+        }
+
         function focusInput() { if (!gameOver) document.getElementById('hidden-input').focus(); }
 
         document.getElementById('hidden-input').addEventListener('input', (e) => {
             if (gameOver) return;
+            lockSettings();
             currentGuess = e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, WORD_LENGTH);
             updateBoard();
         });
@@ -176,7 +198,6 @@
             if (e.key === "Enter") {
                 if (currentGuess.length !== WORD_LENGTH) return;
                 
-                // --- VALIDATION CHECK ---
                 if (!currentValidList.includes(currentGuess)) {
                     showMessage("Invalid Word");
                     const board = document.getElementById('board');
