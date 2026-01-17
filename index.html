@@ -8,51 +8,64 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <style>
         :root { --correct: #6aaa64; --present: #c9b458; --absent: #787c7e; --tile-border: #d3d6da; --accent: #007AFF; }
+        
+        /* Prevent background scrolling */
         html, body { overflow: hidden; position: fixed; width: 100%; height: 100%; margin: 0; padding: 0; background: #fff; }
         body { font-family: -apple-system, sans-serif; display: flex; flex-direction: column; align-items: center; }
-        header { width: 100%; border-bottom: 1px solid #eee; text-align: center; padding: 15px 0; font-weight: 800; font-size: 24px; background: white; }
+        
+        header { width: 100%; border-bottom: 1px solid #eee; text-align: center; padding: 15px 0; font-weight: 800; font-size: 24px; background: white; z-index: 10; }
         
         .controls { 
             display: flex; flex-direction: column; align-items: center;
             gap: 15px; padding: 20px; background: #f9f9f9; width: 100%; border-bottom: 1px solid #eee;
-            position: relative; z-index: 20;
+            z-index: 20; position: relative;
         }
-        .input-row { display: flex; gap: 20px; justify-content: center; width: 100%; }
-        .control-group { display: flex; flex-direction: column; align-items: center; gap: 8px; }
-        .control-group label { font-size: 11px; font-weight: bold; color: #555; text-transform: uppercase; }
 
-        /* Unified styling for both boxes */
+        .input-row { display: flex; gap: 20px; justify-content: center; width: 100%; }
+        
+        .control-group { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+        .control-group label { font-size: 12px; font-weight: bold; color: #555; text-transform: uppercase; }
+
+        /* FORCED UNIFORM SIZE FOR BOTH BOXES */
         .box-style {
-            height: 45px !important; 
-            width: 75px !important;
+            height: 50px !important; 
+            width: 80px !important;
+            min-width: 80px !important;
+            max-width: 80px !important;
+            padding: 0 !important;
             border-radius: 10px; 
             border: 2px solid #bbb; 
-            font-size: 18px; 
+            font-size: 20px; 
             background: white; 
             text-align: center;
-            -webkit-appearance: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            -webkit-appearance: none; /* Kills default iOS style */
+            pointer-events: auto !important;
         }
         
         button#new-game-btn {
             background: var(--accent); color: white; border: none; height: 50px;
-            border-radius: 10px; font-size: 18px; font-weight: bold; width: 200px;
+            border-radius: 10px; font-size: 18px; font-weight: bold; width: 180px;
+            pointer-events: auto !important;
         }
 
         #game-container { flex: 1; display: flex; flex-direction: column; align-items: center; padding-top: 20px; width: 100%; }
         #board { display: grid; gap: 6px; }
+        
         .tile {
-            width: 50px; height: 50px; border: 2px solid var(--tile-border);
+            width: 52px; height: 52px; border: 2px solid var(--tile-border);
             display: flex; align-items: center; justify-content: center;
-            font-size: 24px; font-weight: bold; text-transform: uppercase;
+            font-size: 26px; font-weight: bold; text-transform: uppercase;
         }
+
         .correct { background: var(--correct); color: white; border-color: var(--correct); }
         .present { background: var(--present); color: white; border-color: var(--present); }
         .absent { background: var(--absent); color: white; border-color: var(--absent); }
 
         #hidden-input { position: absolute; top: 0; opacity: 0; pointer-events: none; }
         .message { font-size: 18px; font-weight: 700; color: #333; height: 25px; margin-bottom: 10px; }
-        
-        :disabled { background: #eee !important; color: #888 !important; }
     </style>
 </head>
 <body onclick="focusInput()">
@@ -113,46 +126,27 @@
         }
 
         function resetGame() {
-            // 1. Force read the values from the screen
-            const lengthElement = document.getElementById('lenSelect');
-            const guessElement = document.getElementById('guessInput');
+            WORD_LENGTH = parseInt(document.getElementById('lenSelect').value) || 5;
+            MAX_GUESSES = parseInt(document.getElementById('guessInput').value) || 6;
             
-            WORD_LENGTH = parseInt(lengthElement.value);
-            MAX_GUESSES = parseInt(guessElement.value);
-            
-            // 2. Unlock inputs for the new setup
-            lengthElement.disabled = false;
-            guessElement.disabled = false;
-
-            // 3. Setup word data
             const data = ALL_DATA[WORD_LENGTH];
-            if (!data) {
-                alert("No words for length " + WORD_LENGTH);
-                return;
-            }
+            if (!data) return;
 
             targetWord = data.answers[Math.floor(Math.random() * data.answers.length)].toUpperCase();
             currentValidList = data.valid.map(v => v.toUpperCase());
             
-            // 4. Reset game state
             guesses = [];
             currentGuess = "";
             gameOver = false;
+            document.getElementById('message').textContent = "";
             document.getElementById('hidden-input').value = "";
-            document.getElementById('message').textContent = "New Game Started!";
-            setTimeout(() => { if(!gameOver) document.getElementById('message').textContent = ""; }, 1500);
-            
             initBoard();
         }
 
         function initBoard() {
             const board = document.getElementById('board');
             board.innerHTML = "";
-            // Adjust tile size for long words so they fit
-            let tileSize = 50;
-            if (WORD_LENGTH > 5) tileSize = 40;
-            if (WORD_LENGTH > 7) tileSize = 35;
-
+            const tileSize = WORD_LENGTH > 5 ? 45 : 52;
             board.style.gridTemplateColumns = `repeat(${WORD_LENGTH}, ${tileSize}px)`;
             
             for (let i = 0; i < MAX_GUESSES * WORD_LENGTH; i++) {
@@ -160,7 +154,6 @@
                 tile.className = 'tile';
                 tile.style.width = tileSize + 'px';
                 tile.style.height = tileSize + 'px';
-                tile.style.fontSize = (tileSize * 0.5) + 'px';
                 tile.id = 'tile-' + i;
                 board.appendChild(tile);
             }
@@ -191,11 +184,6 @@
 
         document.getElementById('hidden-input').addEventListener('input', (e) => {
             if (gameOver) return;
-            
-            // Lock inputs once typing starts
-            document.getElementById('lenSelect').disabled = true;
-            document.getElementById('guessInput').disabled = true;
-
             currentGuess = e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, WORD_LENGTH);
             updateBoard();
         });
