@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Dashle</title>
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="Dashle">
+
+    <style>
+        :root {
+            --correct: #6aaa64; --present: #c9b458; --absent: #787c7e; --bg: #ffffff;
+        }
+        body { 
+            font-family: -apple-system, sans-serif; 
+            background: var(--bg); margin: 0; display: flex; flex-direction: column; align-items: center; 
+        }
+        header { width: 100%; border-bottom: 1px solid #ddd; text-align: center; padding: 10px 0; font-weight: bold; font-size: 24px; }
+        
+        /* Settings Section */
+        #settings { margin: 15px; text-align: center; font-size: 14px; }
+        input { width: 40px; padding: 5px; margin: 0 5px; border: 1px solid #ccc; border-radius: 4px; }
+        button#start-btn { background: #007AFF; color: white; border: none; padding: 6px 15px; border-radius: 5px; }
+
+        /* Game Board */
+        #board { display: grid; gap: 5px; margin-top: 20px; }
+        .tile {
+            width: 50px; height: 50px; border: 2px solid #d3d6da;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 24px; font-weight: bold; text-transform: uppercase;
+        }
+        .correct { background: var(--correct); color: white; border-color: var(--correct); }
+        .present { background: var(--present); color: white; border-color: var(--present); }
+        .absent { background: var(--absent); color: white; border-color: var(--absent); }
+
+        /* Hidden Input for Keyboard */
+        #hidden-input { position: absolute; opacity: 0; pointer-events: none; }
+    </style>
+</head>
+<body>
+
+    <header>DASHLE</header>
+
+    <div id="settings">
+        Word Length: <input type="number" id="wordLen" value="5" min="3" max="8">
+        Guesses: <input type="number" id="maxGuesses" value="6" min="1" max="10">
+        <button id="start-btn" onclick="initGame()">New Game</button>
+    </div>
+
+    <div id="board"></div>
+    <input type="text" id="hidden-input" autofocus>
+
+    <script>
+        let targetWord = "";
+        let wordLength = 5;
+        let maxGuesses = 6;
+        let guesses = [];
+        let currentGuess = "";
+
+        // Simple word list for the demo
+        const words = ["DASHY", "APPLE", "SMART", "PLANT", "LIGHT", "SPACE", "GHOST", "PIZZA"];
+
+        function initGame() {
+            wordLength = parseInt(document.getElementById('wordLen').value);
+            maxGuesses = parseInt(document.getElementById('maxGuesses').value);
+            
+            // Filter words by length or generate a random string for testing
+            const possible = words.filter(w => w.length === wordLength);
+            targetWord = possible.length > 0 ? possible[Math.floor(Math.random() * possible.length)] : "DASHY".slice(0, wordLength).padEnd(wordLength, 'X');
+            
+            guesses = [];
+            currentGuess = "";
+            renderBoard();
+            document.getElementById('hidden-input').focus();
+        }
+
+        function renderBoard() {
+            const board = document.getElementById('board');
+            board.innerHTML = "";
+            board.style.gridTemplateColumns = `repeat(${wordLength}, 50px)`;
+
+            for (let i = 0; i < maxGuesses; i++) {
+                for (let j = 0; j < wordLength; j++) {
+                    const tile = document.createElement('div');
+                    tile.classList.add('tile');
+                    
+                    if (guesses[i]) {
+                        const letter = guesses[i][j];
+                        tile.textContent = letter;
+                        if (targetWord[j] === letter) tile.classList.add('correct');
+                        else if (targetWord.includes(letter)) tile.classList.add('present');
+                        else tile.classList.add('absent');
+                    } else if (i === guesses.length) {
+                        tile.textContent = currentGuess[j] || "";
+                    }
+                    board.appendChild(tile);
+                }
+            }
+        }
+
+        document.getElementById('hidden-input').addEventListener('input', (e) => {
+            currentGuess = e.target.value.toUpperCase().slice(0, wordLength);
+            renderBoard();
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === "Enter" && currentGuess.length === wordLength) {
+                guesses.push(currentGuess);
+                if (currentGuess === targetWord) alert("You Won! 🎉");
+                else if (guesses.length === maxGuesses) alert("Game Over! Word was: " + targetWord);
+                currentGuess = "";
+                document.getElementById('hidden-input').value = "";
+                renderBoard();
+            }
+        });
+
+        // Click board to focus keyboard
+        document.body.onclick = () => document.getElementById('hidden-input').focus();
+
+        initGame();
+    </script>
+</body>
+</html>
