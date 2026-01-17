@@ -54,7 +54,7 @@
         #board { 
             display: grid; 
             gap: 6px; 
-            padding-bottom: 450px; /* Buffer for keyboard */
+            padding-bottom: 500px; 
         }
         
         .tile {
@@ -196,23 +196,23 @@
                     }
                 }
             }
-
+            
+            // Check scroll position every time board updates (typing or submitting)
             handleSmartScroll();
         }
 
         function handleSmartScroll() {
-            const container = document.getElementById('game-container');
             const activeRowIndex = guesses.length;
             const targetTile = document.getElementById('tile-' + (activeRowIndex * WORD_LENGTH));
             
             if (targetTile) {
                 const rect = targetTile.getBoundingClientRect();
-                const containerRect = container.getBoundingClientRect();
+                // We use 55% of the screen as the "trigger line". 
+                // This usually sits just above where the keyboard starts on most iPhones.
+                const keyboardSafetyLine = window.innerHeight * 0.55;
                 
-                // Only scroll if the tile is below the bottom 70% of the screen
-                // This prevents "jumping" too early
-                if (rect.bottom > window.innerHeight * 0.7) {
-                    targetTile.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                if (rect.bottom > keyboardSafetyLine) {
+                    targetTile.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }
             }
         }
@@ -247,6 +247,11 @@
                 updateBoard();
             }
         });
+
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', handleSmartScroll);
+        }
+
         loadData();
     </script>
 </body>
