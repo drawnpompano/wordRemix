@@ -51,7 +51,7 @@
         #board { 
             display: grid; 
             gap: 6px; 
-            padding-bottom: 500px; /* Buffer to allow scrolling */
+            padding-bottom: 70vh; /* Keeps space so the browser doesn't snap back to bottom */
         }
         
         .tile {
@@ -64,8 +64,8 @@
         .present { background: var(--present); color: white; border-color: var(--present); }
         .absent { background: var(--absent); color: white; border-color: var(--absent); }
 
-        /* Moved back to top so focusing doesn't scroll the page down */
-        #hidden-input { position: absolute; top: 0; left: 0; opacity: 0; pointer-events: none; }
+        /* Changed to fixed so it doesn't move with the scroll */
+        #hidden-input { position: fixed; top: 0; left: 0; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
         .message { font-size: 16px; font-weight: 700; color: #333; height: 20px; margin-bottom: 5px; }
     </style>
 </head>
@@ -187,11 +187,16 @@
             
             if (targetTile) {
                 const rect = targetTile.getBoundingClientRect();
-                const safetyLine = window.innerHeight * 0.5;
+                const safetyLine = window.innerHeight * 0.45; // Move slightly earlier to be safe
                 
-                // Only scroll if the next row is actually in the keyboard zone
                 if (rect.bottom > safetyLine) {
-                    window.scrollBy({ top: 56, behavior: 'smooth' });
+                    const scrollTarget = window.pageYOffset + 56;
+                    
+                    // Force the scroll using a requestAnimationFrame loop to override browser snap-back
+                    const performScroll = () => {
+                        window.scrollTo({ top: scrollTarget, behavior: 'smooth' });
+                    };
+                    requestAnimationFrame(performScroll);
                 }
             }
         }
@@ -201,8 +206,7 @@
         document.getElementById('hidden-input').addEventListener('input', (e) => {
             if (gameOver) return;
             currentGuess = e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, WORD_LENGTH);
-            updateBoard(); 
-            // handleOneGuessScroll is NOT here anymore
+            updateBoard();
         });
 
         document.addEventListener('keydown', (e) => {
@@ -226,8 +230,8 @@
                 document.getElementById('hidden-input').value = "";
                 updateBoard();
                 
-                // We only check for a scroll nudge after a word is submitted
-                setTimeout(handleOneGuessScroll, 100);
+                // Allow the DOM and keyboard to settle, then nudge
+                setTimeout(handleOneGuessScroll, 150);
             }
         });
 
