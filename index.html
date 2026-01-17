@@ -10,37 +10,36 @@
         :root { --correct: #6aaa64; --present: #c9b458; --absent: #787c7e; --tile-border: #d3d6da; --accent: #007AFF; }
         html, body { overflow: hidden; position: fixed; width: 100%; height: 100%; }
         body { font-family: -apple-system, sans-serif; display: flex; flex-direction: column; align-items: center; margin: 0; background: #fff; }
-        header { width: 100%; border-bottom: 1px solid #eee; text-align: center; padding: 15px 0; font-weight: 800; font-size: 28px; }
+        header { width: 100%; border-bottom: 1px solid #eee; text-align: center; padding: 10px 0; font-weight: 800; font-size: 24px; }
         
         .controls { 
             display: flex; flex-direction: column; align-items: center;
-            gap: 20px; padding: 20px; background: #f9f9f9; width: 100%; border-bottom: 1px solid #eee;
+            gap: 12px; padding: 15px; background: #f8f8f8; width: 100%; border-bottom: 1px solid #eee;
         }
-        .input-row { display: flex; gap: 30px; justify-content: center; width: 100%; }
-        .control-group { display: flex; flex-direction: column; align-items: center; gap: 10px; font-size: 16px; font-weight: bold; }
+        .input-row { display: flex; gap: 15px; justify-content: center; width: 100%; }
+        .control-group { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 13px; font-weight: bold; color: #666; }
         
-        /* Larger, uniform touch targets for iPhone */
+        /* Matching the original smaller size for both */
         select, input[type="number"] { 
-            height: 50px; width: 100px;
-            padding: 10px; border-radius: 12px; border: 2px solid #ccc; 
-            font-size: 20px; background: white; text-align: center;
-            -webkit-appearance: none; /* Removes default iOS styling */
+            height: 45px; width: 65px;
+            padding: 5px; border-radius: 8px; border: 1px solid #ccc; 
+            font-size: 18px; background: white; text-align: center;
+            display: block;
         }
         
         button#new-game-btn {
-            background: var(--accent); color: white; border: none; height: 55px;
-            border-radius: 12px; font-size: 20px; font-weight: bold; width: 85%; max-width: 300px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            background: var(--accent); color: white; border: none; height: 48px;
+            border-radius: 10px; font-size: 17px; font-weight: bold; width: 180px;
+            margin-top: 5px;
         }
-        button:active { transform: scale(0.98); background: #0056b3; }
 
-        #game-container { flex: 1; display: flex; flex-direction: column; align-items: center; padding-top: 15px; width: 100%; overflow-y: auto; }
-        #board { display: grid; gap: 8px; margin-bottom: 20px; }
+        #game-container { flex: 1; display: flex; flex-direction: column; align-items: center; padding-top: 15px; width: 100%; }
+        #board { display: grid; gap: 6px; margin-bottom: 20px; }
         
         .tile {
-            width: 55px; height: 55px; border: 2px solid var(--tile-border);
+            width: 52px; height: 52px; border: 2px solid var(--tile-border);
             display: flex; align-items: center; justify-content: center;
-            font-size: 28px; font-weight: bold; text-transform: uppercase;
+            font-size: 26px; font-weight: bold; text-transform: uppercase;
         }
 
         .correct { background: var(--correct); color: white; border-color: var(--correct); }
@@ -50,14 +49,15 @@
         .shake { animation: shake 0.4s; }
         @keyframes shake {
             0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-5px); }
-            75% { transform: translateX(5px); }
+            25% { transform: translateX(-4px); }
+            75% { transform: translateX(4px); }
         }
 
         #hidden-input { position: absolute; top: 0; opacity: 0; font-size: 16px; width: 1px; height: 1px; pointer-events: none; }
-        .message { font-size: 22px; font-weight: 800; color: #333; height: 35px; margin-bottom: 10px; text-align: center; }
+        .message { font-size: 18px; font-weight: 700; color: #333; height: 25px; margin-bottom: 10px; text-align: center; }
         
-        input:disabled, select:disabled { background: #eaeaea; color: #999; border-color: #ddd; opacity: 1; }
+        /* Ensure disabled looks obvious but clear */
+        :disabled { background: #eeeeee !important; color: #aaa !important; opacity: 1; }
     </style>
 </head>
 <body onclick="focusInput()">
@@ -67,18 +67,18 @@
     <div class="controls">
         <div class="input-row">
             <div class="control-group">
-                <label>Length</label>
+                <label>LENGTH</label>
                 <select id="lenSelect"></select>
             </div>
             <div class="control-group">
-                <label>Guesses</label>
+                <label>GUESSES</label>
                 <input type="number" id="guessInput" value="6" min="1" max="15">
             </div>
         </div>
         <button id="new-game-btn" onclick="resetGame()">NEW GAME</button>
     </div>
 
-    <input type="text" id="hidden-input" autocomplete="off" spellcheck="false" inputmode="text">
+    <input type="text" id="hidden-input" autocomplete="off" spellcheck="false">
 
     <div id="game-container">
         <div class="message" id="message"></div>
@@ -93,10 +93,7 @@
         let guesses = [];
         let currentGuess = "";
         let gameOver = false;
-        let gameStarted = false;
         let currentValidList = [];
-
-        const WIN_MESSAGES = ["You got it!", "Splendid!", "Amazing!", "Brilliant!", "Genius!", "Nice Job!"];
 
         async function loadData() {
             try {
@@ -110,26 +107,23 @@
                 lengths.forEach(len => {
                     let opt = document.createElement('option');
                     opt.value = len;
-                    opt.innerHTML = len;
+                    opt.textContent = len;
                     if(len == "5") opt.selected = true;
                     selector.appendChild(opt);
                 });
-
                 resetGame();
             } catch (e) {
-                document.getElementById('message').textContent = "Error: Check words.json";
+                document.getElementById('message').textContent = "words.json error";
             }
         }
 
         function resetGame() {
-            // Force Unlock
-            const lSelect = document.getElementById('lenSelect');
-            const gInput = document.getElementById('guessInput');
-            lSelect.disabled = false;
-            gInput.disabled = false;
+            // Re-enable everything
+            document.getElementById('lenSelect').disabled = false;
+            document.getElementById('guessInput').disabled = false;
 
-            WORD_LENGTH = parseInt(lSelect.value) || 5;
-            MAX_GUESSES = parseInt(gInput.value) || 6;
+            WORD_LENGTH = parseInt(document.getElementById('lenSelect').value) || 5;
+            MAX_GUESSES = parseInt(document.getElementById('guessInput').value) || 6;
             
             const data = ALL_DATA[WORD_LENGTH];
             if (!data) return;
@@ -140,7 +134,6 @@
             guesses = [];
             currentGuess = "";
             gameOver = false;
-            gameStarted = false;
             document.getElementById('message').textContent = "";
             document.getElementById('hidden-input').value = "";
             initBoard();
@@ -149,7 +142,7 @@
         function initBoard() {
             const board = document.getElementById('board');
             board.innerHTML = "";
-            const tileSize = WORD_LENGTH > 5 ? 45 : 55;
+            const tileSize = WORD_LENGTH > 5 ? 45 : 52;
             board.style.gridTemplateColumns = `repeat(${WORD_LENGTH}, ${tileSize}px)`;
             
             for (let i = 0; i < MAX_GUESSES * WORD_LENGTH; i++) {
@@ -167,12 +160,10 @@
                 for (let j = 0; j < WORD_LENGTH; j++) {
                     const tile = document.getElementById('tile-' + (i * WORD_LENGTH + j));
                     if (!tile) continue;
-                    const guess = guesses[i];
-                    
-                    if (guess) {
-                        tile.textContent = guess[j];
-                        if (targetWord[j] === guess[j]) tile.className = 'tile correct';
-                        else if (targetWord.includes(guess[j])) tile.className = 'tile present';
+                    if (guesses[i]) {
+                        tile.textContent = guesses[i][j];
+                        if (targetWord[j] === guesses[i][j]) tile.className = 'tile correct';
+                        else if (targetWord.includes(guesses[i][j])) tile.className = 'tile present';
                         else tile.className = 'tile absent';
                     } else if (i === guesses.length) {
                         tile.textContent = currentGuess[j] || "";
@@ -182,19 +173,10 @@
             }
         }
 
-        function lockSettings() {
-            if (!gameStarted) {
-                gameStarted = true;
-                document.getElementById('lenSelect').disabled = true;
-                document.getElementById('guessInput').disabled = true;
-            }
-        }
-
         function focusInput() { if (!gameOver) document.getElementById('hidden-input').focus(); }
 
         document.getElementById('hidden-input').addEventListener('input', (e) => {
             if (gameOver) return;
-            if (e.target.value.length > 0) lockSettings();
             currentGuess = e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, WORD_LENGTH);
             updateBoard();
         });
@@ -212,13 +194,15 @@
                     return;
                 }
 
+                // Lock settings only after a successful first guess
+                document.getElementById('lenSelect').disabled = true;
+                document.getElementById('guessInput').disabled = true;
+
                 guesses.push(currentGuess);
                 if (currentGuess === targetWord) { 
-                    const msg = WIN_MESSAGES[Math.floor(Math.random() * WIN_MESSAGES.length)];
-                    showMessage(msg); 
+                    showMessage("You got it! 🎉"); 
                     gameOver = true; 
-                }
-                else if (guesses.length === MAX_GUESSES) { 
+                } else if (guesses.length === MAX_GUESSES) { 
                     showMessage("Word: " + targetWord); 
                     gameOver = true; 
                 }
