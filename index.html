@@ -10,28 +10,31 @@
         :root { --correct: #6aaa64; --present: #c9b458; --absent: #787c7e; --tile-border: #d3d6da; --accent: #007AFF; }
         html, body { overflow: hidden; position: fixed; width: 100%; height: 100%; }
         body { font-family: -apple-system, sans-serif; display: flex; flex-direction: column; align-items: center; margin: 0; background: #fff; }
-        header { width: 100%; border-bottom: 1px solid #eee; text-align: center; padding: 10px 0; font-weight: 800; font-size: 28px; }
+        header { width: 100%; border-bottom: 1px solid #eee; text-align: center; padding: 15px 0; font-weight: 800; font-size: 28px; }
         
         .controls { 
             display: flex; flex-direction: column; align-items: center;
-            gap: 15px; padding: 15px; background: #f8f8f8; width: 100%; border-bottom: 1px solid #eee;
+            gap: 20px; padding: 20px; background: #f9f9f9; width: 100%; border-bottom: 1px solid #eee;
         }
-        .input-row { display: flex; gap: 20px; justify-content: center; width: 100%; }
-        .control-group { display: flex; flex-direction: column; align-items: center; gap: 5px; font-size: 14px; font-weight: bold; }
+        .input-row { display: flex; gap: 30px; justify-content: center; width: 100%; }
+        .control-group { display: flex; flex-direction: column; align-items: center; gap: 10px; font-size: 16px; font-weight: bold; }
         
-        /* Larger touch targets */
+        /* Larger, uniform touch targets for iPhone */
         select, input[type="number"] { 
-            padding: 12px; border-radius: 10px; border: 1px solid #ccc; 
-            font-size: 18px; background: white; width: 80px; text-align: center;
+            height: 50px; width: 100px;
+            padding: 10px; border-radius: 12px; border: 2px solid #ccc; 
+            font-size: 20px; background: white; text-align: center;
+            -webkit-appearance: none; /* Removes default iOS styling */
         }
         
         button#new-game-btn {
-            background: var(--accent); color: white; border: none; padding: 12px 30px;
-            border-radius: 10px; font-size: 18px; font-weight: bold; width: 80%; max-width: 250px;
+            background: var(--accent); color: white; border: none; height: 55px;
+            border-radius: 12px; font-size: 20px; font-weight: bold; width: 85%; max-width: 300px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
-        button:active { opacity: 0.7; }
+        button:active { transform: scale(0.98); background: #0056b3; }
 
-        #game-container { flex: 1; display: flex; flex-direction: column; align-items: center; padding-top: 15px; width: 100%; }
+        #game-container { flex: 1; display: flex; flex-direction: column; align-items: center; padding-top: 15px; width: 100%; overflow-y: auto; }
         #board { display: grid; gap: 8px; margin-bottom: 20px; }
         
         .tile {
@@ -51,11 +54,10 @@
             75% { transform: translateX(5px); }
         }
 
-        #hidden-input { position: absolute; top: 0; opacity: 0; font-size: 16px; width: 1px; height: 1px; }
-        .message { font-size: 20px; font-weight: 800; color: #333; height: 30px; margin-bottom: 10px; text-align: center; }
+        #hidden-input { position: absolute; top: 0; opacity: 0; font-size: 16px; width: 1px; height: 1px; pointer-events: none; }
+        .message { font-size: 22px; font-weight: 800; color: #333; height: 35px; margin-bottom: 10px; text-align: center; }
         
-        /* Visual cue for disabled inputs */
-        input:disabled, select:disabled { background: #e0e0e0; color: #888; border-color: #ddd; }
+        input:disabled, select:disabled { background: #eaeaea; color: #999; border-color: #ddd; opacity: 1; }
     </style>
 </head>
 <body onclick="focusInput()">
@@ -70,13 +72,13 @@
             </div>
             <div class="control-group">
                 <label>Guesses</label>
-                <input type="number" id="guessInput" value="6" min="1" max="12">
+                <input type="number" id="guessInput" value="6" min="1" max="15">
             </div>
         </div>
         <button id="new-game-btn" onclick="resetGame()">NEW GAME</button>
     </div>
 
-    <input type="text" id="hidden-input" autocomplete="off" spellcheck="false">
+    <input type="text" id="hidden-input" autocomplete="off" spellcheck="false" inputmode="text">
 
     <div id="game-container">
         <div class="message" id="message"></div>
@@ -115,19 +117,23 @@
 
                 resetGame();
             } catch (e) {
-                document.getElementById('message').textContent = "Error loading words.json";
+                document.getElementById('message').textContent = "Error: Check words.json";
             }
         }
 
         function resetGame() {
-            // Unlock inputs
-            document.getElementById('lenSelect').disabled = false;
-            document.getElementById('guessInput').disabled = false;
+            // Force Unlock
+            const lSelect = document.getElementById('lenSelect');
+            const gInput = document.getElementById('guessInput');
+            lSelect.disabled = false;
+            gInput.disabled = false;
 
-            WORD_LENGTH = parseInt(document.getElementById('lenSelect').value);
-            MAX_GUESSES = parseInt(document.getElementById('guessInput').value);
+            WORD_LENGTH = parseInt(lSelect.value) || 5;
+            MAX_GUESSES = parseInt(gInput.value) || 6;
             
             const data = ALL_DATA[WORD_LENGTH];
+            if (!data) return;
+
             targetWord = data.answers[Math.floor(Math.random() * data.answers.length)].toUpperCase();
             currentValidList = data.valid.map(v => v.toUpperCase());
             
@@ -188,7 +194,7 @@
 
         document.getElementById('hidden-input').addEventListener('input', (e) => {
             if (gameOver) return;
-            lockSettings();
+            if (e.target.value.length > 0) lockSettings();
             currentGuess = e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, WORD_LENGTH);
             updateBoard();
         });
@@ -213,7 +219,7 @@
                     gameOver = true; 
                 }
                 else if (guesses.length === MAX_GUESSES) { 
-                    showMessage("Word was: " + targetWord); 
+                    showMessage("Word: " + targetWord); 
                     gameOver = true; 
                 }
                 currentGuess = "";
