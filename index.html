@@ -29,13 +29,13 @@
         /* FORCED UNIFORM SIZE FOR BOTH BOXES */
         .box-style {
             height: 50px !important; 
-            width: 80px !important;
-            min-width: 80px !important;
-            max-width: 80px !important;
+            width: 90px !important; /* Slightly widened to fit the word "Unlimited" */
+            min-width: 90px !important;
+            max-width: 90px !important;
             padding: 0 !important;
             border-radius: 10px; 
             border: 2px solid #bbb; 
-            font-size: 20px; 
+            font-size: 16px; /* Slightly smaller to fit "Unlimited" comfortably */
             background: white; 
             text-align: center;
             display: flex;
@@ -51,8 +51,16 @@
             pointer-events: auto !important;
         }
 
-        #game-container { flex: 1; display: flex; flex-direction: column; align-items: center; padding-top: 20px; width: 100%; }
-        #board { display: grid; gap: 6px; }
+        #game-container { 
+            flex: 1; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            padding-top: 20px; 
+            width: 100%; 
+            overflow-y: auto; /* Added so Unlimited games can scroll if needed */
+        }
+        #board { display: grid; gap: 6px; padding-bottom: 40px; }
         
         .tile {
             width: 52px; height: 52px; border: 2px solid var(--tile-border);
@@ -80,7 +88,19 @@
             </div>
             <div class="control-group">
                 <label>Guesses</label>
-                <input type="number" id="guessInput" class="box-style" value="6" min="1" max="15">
+                <select id="guessSelect" class="box-style">
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6" selected>6</option>
+                    <option value="7">7</option>
+                    <option value="8">8</option>
+                    <option value="9">9</option>
+                    <option value="10">10</option>
+                    <option value="1000">Unlimited</option>
+                </select>
             </div>
         </div>
         <button id="new-game-btn" onclick="resetGame()">NEW GAME</button>
@@ -127,7 +147,8 @@
 
         function resetGame() {
             WORD_LENGTH = parseInt(document.getElementById('lenSelect').value) || 5;
-            MAX_GUESSES = parseInt(document.getElementById('guessInput').value) || 6;
+            // Now reading from guessSelect
+            MAX_GUESSES = parseInt(document.getElementById('guessSelect').value) || 6;
             
             const data = ALL_DATA[WORD_LENGTH];
             if (!data) return;
@@ -149,7 +170,11 @@
             const tileSize = WORD_LENGTH > 5 ? 45 : 52;
             board.style.gridTemplateColumns = `repeat(${WORD_LENGTH}, ${tileSize}px)`;
             
-            for (let i = 0; i < MAX_GUESSES * WORD_LENGTH; i++) {
+            // If Unlimited, we don't draw 1000 rows at once. 
+            // We start with 1 empty row and add more as the user plays.
+            let rowsToDraw = MAX_GUESSES === 1000 ? 1 : MAX_GUESSES;
+
+            for (let i = 0; i < rowsToDraw * WORD_LENGTH; i++) {
                 const tile = document.createElement('div');
                 tile.className = 'tile';
                 tile.style.width = tileSize + 'px';
@@ -160,7 +185,23 @@
         }
 
         function updateBoard() {
-            for (let i = 0; i < MAX_GUESSES; i++) {
+            const board = document.getElementById('board');
+            const tileSize = WORD_LENGTH > 5 ? 45 : 52;
+
+            // Handle Unlimited: Check if we need to add a new empty row
+            if (MAX_GUESSES === 1000 && !gameOver) {
+                const requiredTiles = (guesses.length + 1) * WORD_LENGTH;
+                while (board.children.length < requiredTiles) {
+                    const tile = document.createElement('div');
+                    tile.className = 'tile';
+                    tile.style.width = tileSize + 'px';
+                    tile.style.height = tileSize + 'px';
+                    tile.id = 'tile-' + board.children.length;
+                    board.appendChild(tile);
+                }
+            }
+
+            for (let i = 0; i < (MAX_GUESSES === 1000 ? guesses.length + 1 : MAX_GUESSES); i++) {
                 for (let j = 0; j < WORD_LENGTH; j++) {
                     const tile = document.getElementById('tile-' + (i * WORD_LENGTH + j));
                     if (!tile) continue;
