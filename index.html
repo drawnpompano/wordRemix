@@ -132,6 +132,7 @@
         function resetGame() {
             WORD_LENGTH = parseInt(document.getElementById('lenSelect').value) || 5;
             MAX_GUESSES = parseInt(document.getElementById('guessSelect').value) || 6;
+            document.getElementById('hidden-input').setAttribute('maxlength', WORD_LENGTH);
             const data = ALL_DATA[WORD_LENGTH];
             if (!data) return;
             targetWord = data.answers[Math.floor(Math.random() * data.answers.length)].toUpperCase();
@@ -228,22 +229,24 @@
                     gameOver = true; 
                 }
                 currentGuess = "";
-              document.getElementById('hidden-input').addEventListener('input', (e) => {
-                    if (gameOver) return;
-                    
-                    // 1. Get the raw value and clean it
-                    let val = e.target.value.toUpperCase().replace(/[^A-Z]/g, '');
-                    
-                    // 2. Hard limit: if the user typed more than the allowed length,
-                    // truncate the actual input field value so it doesn't "hold" extra letters
-                    if (val.length > WORD_LENGTH) {
-                        val = val.slice(0, WORD_LENGTH);
-                        e.target.value = val; // Force the input field back to the limit
-                    }
-                    
-                    currentGuess = val;
-                    updateBoard();
-             });
+           document.getElementById('hidden-input').addEventListener('input', (e) => {
+            if (gameOver) return;
+
+            // 1. Clean the input (Upper case and letters only)
+            let val = e.target.value.toUpperCase().replace(/[^A-Z]/g, '');
+
+            // 2. If it exceeds the length, truncate the ACTUAL input field
+            if (val.length > WORD_LENGTH) {
+                val = val.slice(0, WORD_LENGTH);
+            }
+
+            // 3. Sync the hidden input field with the truncated value
+            // This prevents the "GY" from existing in the input's memory
+            e.target.value = val;
+
+            currentGuess = val;
+            updateBoard();
+        });
                 // Allow the DOM and keyboard to settle, then nudge
                 setTimeout(handleOneGuessScroll, 150);
             }
