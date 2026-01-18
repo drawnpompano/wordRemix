@@ -106,11 +106,13 @@
             initBoard();
         }
 
-        function initBoard() {
+       function initBoard() {
             const board = document.getElementById('board');
             board.innerHTML = "";
             const tileSize = WORD_LENGTH > 6 ? 42 : 50;
             board.style.gridTemplateColumns = `repeat(${WORD_LENGTH}, ${tileSize}px)`;
+            
+            // Draw initial rows: if unlimited, start with 1, otherwise draw the full amount
             let rowsToDraw = MAX_GUESSES === 1000 ? 1 : MAX_GUESSES;
             for (let i = 0; i < rowsToDraw * WORD_LENGTH; i++) {
                 const tile = document.createElement('div');
@@ -122,22 +124,48 @@
             }
             window.scrollTo(0, 0);
             updateBoard();
-        }
+        } 
 
         function updateBoard() {
+            const board = document.getElementById('board');
+            
+            // In Unlimited mode, we need to ensure the board has enough rows
+            // Total rows needed = past guesses + 1 (the current typing row)
+            if (MAX_GUESSES === 1000) {
+                const totalTilesNeeded = (guesses.length + 1) * WORD_LENGTH;
+                const currentTiles = board.children.length;
+                
+                if (totalTilesNeeded > currentTiles) {
+                    const tileSize = WORD_LENGTH > 6 ? 42 : 50;
+                    for (let i = 0; i < WORD_LENGTH; i++) {
+                        const tile = document.createElement('div');
+                        tile.className = 'tile';
+                        tile.style.width = tileSize + 'px';
+                        tile.style.height = tileSize + 'px';
+                        tile.id = 'tile-' + (currentTiles + i);
+                        board.appendChild(tile);
+                    }
+                }
+            }
+
+            // Now, fill the tiles with letters and colors as before
             for (let i = 0; i < (MAX_GUESSES === 1000 ? guesses.length + 1 : MAX_GUESSES); i++) {
                 for (let j = 0; j < WORD_LENGTH; j++) {
                     const tile = document.getElementById('tile-' + (i * WORD_LENGTH + j));
                     if (!tile) continue;
+                    
                     if (guesses[i]) {
+                        // Past guesses: show letters and colors
                         tile.textContent = guesses[i][j];
                         if (targetWord[j] === guesses[i][j]) tile.className = 'tile correct';
                         else if (targetWord.includes(guesses[i][j])) tile.className = 'tile present';
                         else tile.className = 'tile absent';
                     } else if (i === guesses.length) {
+                        // Current typing row: show letters only, no colors
                         tile.textContent = currentGuess[j] || "";
                         tile.className = 'tile';
                     } else {
+                        // Future rows (fixed attempts mode): stay empty
                         tile.textContent = "";
                         tile.className = 'tile';
                     }
