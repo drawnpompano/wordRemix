@@ -229,7 +229,8 @@
                     gameOver = true; 
                 }
                 currentGuess = "";
-           document.getElementById('hidden-input').addEventListener('input', (e) => {
+          document.getElementById('hidden-input').value = ""; // Clear the input buffer
+                updateBoard(); // Force the colors to update NOW
             if (gameOver) return;
 
             // 1. Clean the input (Upper case and letters only)
