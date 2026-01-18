@@ -194,8 +194,7 @@
         function updateBoard() {
             const board = document.getElementById('board');
             const tileSize = WORD_LENGTH > 6 ? 42 : 50;
-
-            // Grow board dynamically for Unlimited mode
+        
             if (MAX_GUESSES === 1000) {
                 const tilesNeeded = (guesses.length + 1) * WORD_LENGTH;
                 while (board.children.length < tilesNeeded) {
@@ -207,22 +206,58 @@
                     board.appendChild(tile);
                 }
             }
-
+        
             for (let i = 0; i < (MAX_GUESSES === 1000 ? guesses.length + 1 : MAX_GUESSES); i++) {
-                for (let j = 0; j < WORD_LENGTH; j++) {
-                    const tile = document.getElementById('tile-' + (i * WORD_LENGTH + j));
-                    if (!tile) continue;
-                    if (guesses[i]) {
-                        tile.textContent = guesses[i][j];
-                        if (targetWord[j] === guesses[i][j]) tile.className = 'tile correct';
-                        else if (targetWord.includes(guesses[i][j])) tile.className = 'tile present';
-                        else tile.className = 'tile absent';
-                    } else if (i === guesses.length) {
-                        tile.textContent = currentGuess[j] || "";
-                        tile.className = 'tile';
-                    } else {
-                        tile.textContent = "";
-                        tile.className = 'tile';
+                const guess = guesses[i];
+                
+                if (guess) {
+                    // --- SMART COLOR LOGIC START ---
+                    let targetLetters = targetWord.split('');
+                    let statuses = Array(WORD_LENGTH).fill('absent');
+                    let guessLetters = guess.split('');
+        
+                    // First pass: Find CORRECT matches (Green)
+                    for (let j = 0; j < WORD_LENGTH; j++) {
+                        if (guessLetters[j] === targetLetters[j]) {
+                            statuses[j] = 'correct';
+                            targetLetters[j] = null; // "Use up" this letter
+                        }
+                    }
+        
+                    // Second pass: Find PRESENT matches (Yellow)
+                    for (let j = 0; j < WORD_LENGTH; j++) {
+                        if (statuses[j] === 'absent' && targetLetters.includes(guessLetters[j])) {
+                            statuses[j] = 'present';
+                            // "Use up" the first instance of this letter found in the remaining target
+                            targetLetters[targetLetters.indexOf(guessLetters[j])] = null;
+                        }
+                    }
+        
+                    // Apply the statuses to the tiles
+                    for (let j = 0; j < WORD_LENGTH; j++) {
+                        const tile = document.getElementById('tile-' + (i * WORD_LENGTH + j));
+                        tile.textContent = guessLetters[j];
+                        tile.className = 'tile ' + statuses[j];
+                    }
+                    // --- SMART COLOR LOGIC END ---
+        
+                } else if (i === guesses.length) {
+                    // Current typing row
+                    for (let j = 0; j < WORD_LENGTH; j++) {
+                        const tile = document.getElementById('tile-' + (i * WORD_LENGTH + j));
+                        if (tile) {
+                            tile.textContent = currentGuess[j] || "";
+                            tile.className = 'tile';
+                        }
+                    }
+                } else {
+                    // Empty future rows
+                    for (let j = 0; j < WORD_LENGTH; j++) {
+                        const tile = document.getElementById('tile-' + (i * WORD_LENGTH + j));
+                        if (tile) {
+                            tile.textContent = "";
+                            tile.className = 'tile';
+                        }
                     }
                 }
             }
