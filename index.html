@@ -228,9 +228,22 @@
                     gameOver = true; 
                 }
                 currentGuess = "";
-                document.getElementById('hidden-input').value = "";
-                updateBoard();
-                
+              document.getElementById('hidden-input').addEventListener('input', (e) => {
+                    if (gameOver) return;
+                    
+                    // 1. Get the raw value and clean it
+                    let val = e.target.value.toUpperCase().replace(/[^A-Z]/g, '');
+                    
+                    // 2. Hard limit: if the user typed more than the allowed length,
+                    // truncate the actual input field value so it doesn't "hold" extra letters
+                    if (val.length > WORD_LENGTH) {
+                        val = val.slice(0, WORD_LENGTH);
+                        e.target.value = val; // Force the input field back to the limit
+                    }
+                    
+                    currentGuess = val;
+                    updateBoard();
+             });
                 // Allow the DOM and keyboard to settle, then nudge
                 setTimeout(handleOneGuessScroll, 150);
             }
