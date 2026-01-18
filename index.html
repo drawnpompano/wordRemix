@@ -2,38 +2,52 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Dashle</title>
     <link rel="apple-touch-icon" href="Dashle.png">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <style>
-        :root { --correct: #6aaa64; --present: #c9b458; --absent: #787c7e; --tile-border: #d3d6da; --accent: #007AFF; }
+        :root { 
+            --correct: #6aaa64; --present: #c9b458; --absent: #787c7e; 
+            --tile-border: #d3d6da; --accent: #007AFF; 
+            --bg: #ffffff; --text: #000000; --header-bg: #ffffff;
+            --key-bg: #d3d6da; --key-text: #000000; --control-bg: #f9f9f9;
+        }
+
+        [data-theme="dark"] {
+            --bg: #121213; --text: #ffffff; --header-bg: #121213;
+            --tile-border: #3a3a3c; --key-bg: #818384; --key-text: #ffffff;
+            --control-bg: #1a1a1b; --absent: #3a3a3c;
+        }
         
-        html, body { width: 100%; margin: 0; padding: 0; background: #fff; -webkit-text-size-adjust: 100%; }
+        html, body { width: 100%; margin: 0; padding: 0; background: var(--bg); color: var(--text); -webkit-text-size-adjust: 100%; overflow-x: hidden; }
         body { font-family: -apple-system, sans-serif; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
         
-        header { width: 100%; border-bottom: 1px solid #eee; text-align: center; padding: 10px 0; font-weight: 800; font-size: 20px; background: white; flex-shrink: 0; }
-        
+        header { 
+            width: 100%; border-bottom: 1px solid var(--tile-border); text-align: center; 
+            padding: calc(10px + env(safe-area-inset-top)) 0 10px 0; 
+            font-weight: 800; font-size: 20px; background: var(--header-bg); flex-shrink: 0; 
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        header span { flex: 1; margin-left: 40px; }
+
+        #theme-toggle { margin-right: 15px; cursor: pointer; font-size: 20px; background: none; border: none; }
+
         .controls { 
             display: flex; flex-direction: column; align-items: center;
-            gap: 8px; padding: 10px; background: #f9f9f9; width: 100%; border-bottom: 1px solid #eee;
-            flex-shrink: 0;
+            gap: 8px; padding: 10px; background: var(--control-bg); width: 100%; 
+            border-bottom: 1px solid var(--tile-border); flex-shrink: 0;
         }
 
         .input-row { display: flex; gap: 10px; justify-content: center; width: 100%; }
         .control-group { display: flex; align-items: center; gap: 5px; }
-        .control-group label { font-size: 11px; font-weight: bold; color: #555; text-transform: uppercase; }
+        .control-group label { font-size: 11px; font-weight: bold; color: var(--absent); text-transform: uppercase; }
 
         .box-style {
-            height: 38px !important; 
-            width: 85px !important;
-            border-radius: 8px; 
-            border: 1px solid #bbb; 
-            font-size: 14px; 
-            background: white; 
-            text-align: center;
-            -webkit-appearance: none;
+            height: 38px !important; width: 85px !important; border-radius: 8px; 
+            border: 1px solid var(--tile-border); font-size: 14px; 
+            background: var(--bg); color: var(--text); text-align: center; -webkit-appearance: none;
         }
         
         button#new-game-btn {
@@ -41,19 +55,8 @@
             border-radius: 8px; font-size: 14px; font-weight: bold; width: 160px;
         }
 
-        #game-container { 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            width: 100%; 
-            padding-top: 15px;
-        }
-        
-        #board { 
-            display: grid; 
-            gap: 6px; 
-            padding-bottom: 70vh; 
-        }
+        #game-container { display: flex; flex-direction: column; align-items: center; width: 100%; padding-top: 15px; }
+        #board { display: grid; gap: 6px; padding-bottom: 20px; }
         
         .tile {
             width: 50px; height: 50px; border: 2px solid var(--tile-border);
@@ -61,19 +64,32 @@
             font-size: 24px; font-weight: bold; text-transform: uppercase;
         }
 
-        .correct { background: var(--correct); color: white; border-color: var(--correct); }
-        .present { background: var(--present); color: white; border-color: var(--present); }
-        .absent { background: var(--absent); color: white; border-color: var(--absent); }
+        .correct { background: var(--correct) !important; color: white !important; border-color: var(--correct) !important; }
+        .present { background: var(--present) !important; color: white !important; border-color: var(--present) !important; }
+        .absent { background: var(--absent) !important; color: white !important; border-color: var(--absent) !important; }
 
-        #hidden-input { position: fixed; top: 0; left: 0; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
-        .message { font-size: 16px; font-weight: 700; color: #333; height: 20px; margin-bottom: 5px; }
+        .message { font-size: 16px; font-weight: 700; height: 20px; margin-bottom: 10px; text-align: center; }
+
+        #keyboard { margin-top: auto; padding: 0 8px 30px 8px; width: 100%; max-width: 500px; }
+        .keyboard-row { display: flex; justify-content: center; gap: 4px; margin-bottom: 8px; }
+        .key { 
+            height: 58px; flex: 1; border: none; border-radius: 4px; 
+            background: var(--key-bg); font-weight: bold; font-size: 14px; 
+            display: flex; align-items: center; justify-content: center; 
+            color: var(--key-text); cursor: pointer; -webkit-tap-highlight-color: transparent;
+        }
+        .spacer { flex: 0.5; }
+        .wide-key { flex: 1.5; font-size: 11px; }
     </style>
 </head>
-<body onclick="focusInput()">
+<body>
 
-    <header>DASHLE</header>
+    <header>
+        <span>DASHLE</span>
+        <button id="theme-toggle" onclick="toggleTheme()">🌙</button>
+    </header>
     
-    <div class="controls" onclick="event.stopPropagation()">
+    <div class="controls">
         <div class="input-row">
             <div class="control-group">
                 <label>Len</label>
@@ -84,19 +100,43 @@
                 <select id="guessSelect" class="box-style">
                     <option value="1">1</option><option value="2">2</option><option value="3">3</option>
                     <option value="4">4</option><option value="5">5</option><option value="6" selected>6</option>
-                    <option value="7">7</option><option value="8">8</option><option value="9">9</option>
-                    <option value="10">10</option><option value="1000">Unlimited</option>
+                    <option value="1000">Unlimited</option>
                 </select>
             </div>
         </div>
         <button id="new-game-btn" onclick="resetGame()">NEW GAME</button>
     </div>
 
-    <input type="text" id="hidden-input" autocomplete="off" spellcheck="false" inputmode="text">
-
     <div id="game-container">
         <div class="message" id="message"></div>
         <div id="board"></div>
+    </div>
+
+    <div id="keyboard">
+        <div class="keyboard-row">
+            <button class="key" data-key="Q">Q</button><button class="key" data-key="W">W</button>
+            <button class="key" data-key="E">E</button><button class="key" data-key="R">R</button>
+            <button class="key" data-key="T">T</button><button class="key" data-key="Y">Y</button>
+            <button class="key" data-key="U">U</button><button class="key" data-key="I">I</button>
+            <button class="key" data-key="O">O</button><button class="key" data-key="P">P</button>
+        </div>
+        <div class="keyboard-row">
+            <div class="spacer"></div>
+            <button class="key" data-key="A">A</button><button class="key" data-key="S">S</button>
+            <button class="key" data-key="D">D</button><button class="key" data-key="F">F</button>
+            <button class="key" data-key="G">G</button><button class="key" data-key="H">H</button>
+            <button class="key" data-key="J">J</button><button class="key" data-key="K">K</button>
+            <button class="key" data-key="L">L</button>
+            <div class="spacer"></div>
+        </div>
+        <div class="keyboard-row">
+            <button class="key wide-key" data-key="ENTER">ENTER</button>
+            <button class="key" data-key="Z">Z</button><button class="key" data-key="X">X</button>
+            <button class="key" data-key="C">C</button><button class="key" data-key="V">V</button>
+            <button class="key" data-key="B">B</button><button class="key" data-key="N">N</button>
+            <button class="key" data-key="M">M</button>
+            <button class="key wide-key" data-key="BACKSPACE">⌫</button>
+        </div>
     </div>
 
     <script>
@@ -109,13 +149,23 @@
         let gameOver = false;
         let currentValidList = [];
 
+        function toggleTheme() {
+            const body = document.body;
+            const btn = document.getElementById('theme-toggle');
+            if (body.hasAttribute('data-theme')) {
+                body.removeAttribute('data-theme');
+                btn.textContent = "🌙";
+            } else {
+                body.setAttribute('data-theme', 'dark');
+                btn.textContent = "☀️";
+            }
+        }
+
         async function loadData() {
             try {
-                // Fetch the manifest file from your folder
                 const response = await fetch('word_lists/lengths.txt');
                 const text = await response.text();
                 const lengths = text.split(',').map(n => n.trim()).sort((a, b) => a - b);
-
                 const selector = document.getElementById('lenSelect');
                 selector.innerHTML = "";
                 lengths.forEach(len => {
@@ -124,6 +174,7 @@
                     if(len == "5") opt.selected = true;
                     selector.appendChild(opt);
                 });
+                initKeyboardListeners();
                 resetGame();
             } catch (e) {
                 document.getElementById('message').textContent = "Manifest Error";
@@ -134,10 +185,6 @@
             WORD_LENGTH = parseInt(document.getElementById('lenSelect').value) || 5;
             MAX_GUESSES = parseInt(document.getElementById('guessSelect').value) || 6;
             
-            // Sync input limit
-            document.getElementById('hidden-input').setAttribute('maxlength', WORD_LENGTH);
-
-            // Fetch specific word list if not already loaded
             if (!ALL_DATA[WORD_LENGTH]) {
                 document.getElementById('message').textContent = "Loading words...";
                 try {
@@ -147,28 +194,23 @@
                     ]);
                     const ansText = await ansRes.text();
                     const gueText = await gueRes.text();
-
-                    const answers = ansText.split(/\r?\n/).map(w => w.trim().toUpperCase()).filter(w => w.length === WORD_LENGTH);
-                    const valid = gueText.split(/\r?\n/).map(w => w.trim().toUpperCase()).filter(w => w.length === WORD_LENGTH);
-
                     ALL_DATA[WORD_LENGTH] = {
-                        answers: answers,
-                        valid: [...new Set([...answers, ...valid])]
+                        answers: ansText.split(/\r?\n/).map(w => w.trim().toUpperCase()).filter(w => w.length === WORD_LENGTH),
+                        valid: [...new Set([...ansText.split(/\r?\n/), ...gueText.split(/\r?\n/)])].map(w => w.trim().toUpperCase()).filter(w => w.length === WORD_LENGTH)
                     };
                 } catch (e) {
-                    document.getElementById('message').textContent = "File Load Error";
+                    document.getElementById('message').textContent = "Load Error";
                     return;
                 }
             }
 
-            const data = ALL_DATA[WORD_LENGTH];
-            targetWord = data.answers[Math.floor(Math.random() * data.answers.length)];
-            currentValidList = data.valid;
+            targetWord = ALL_DATA[WORD_LENGTH].answers[Math.floor(Math.random() * ALL_DATA[WORD_LENGTH].answers.length)];
+            currentValidList = ALL_DATA[WORD_LENGTH].valid;
             guesses = [];
             currentGuess = "";
             gameOver = false;
             document.getElementById('message').textContent = "";
-            document.getElementById('hidden-input').value = "";
+            document.querySelectorAll('.key').forEach(k => k.className = 'key' + (k.classList.contains('wide-key') ? ' wide-key' : ''));
             initBoard();
         }
 
@@ -177,119 +219,82 @@
             board.innerHTML = "";
             const tileSize = WORD_LENGTH > 6 ? 42 : 50;
             board.style.gridTemplateColumns = `repeat(${WORD_LENGTH}, ${tileSize}px)`;
-            
-            let rowsToDraw = MAX_GUESSES === 1000 ? 1 : MAX_GUESSES;
-            for (let i = 0; i < rowsToDraw * WORD_LENGTH; i++) {
+            let rows = MAX_GUESSES === 1000 ? 1 : MAX_GUESSES;
+            for (let i = 0; i < rows * WORD_LENGTH; i++) {
                 const tile = document.createElement('div');
                 tile.className = 'tile';
-                tile.style.width = tileSize + 'px';
-                tile.style.height = tileSize + 'px';
+                tile.style.width = tileSize + 'px'; tile.style.height = tileSize + 'px';
                 tile.id = 'tile-' + i;
                 board.appendChild(tile);
             }
-            window.scrollTo(0, 0);
             updateBoard();
+            window.scrollTo(0, 0);
         }
 
         function updateBoard() {
             const board = document.getElementById('board');
             const tileSize = WORD_LENGTH > 6 ? 42 : 50;
-        
+
             if (MAX_GUESSES === 1000) {
-                const tilesNeeded = (guesses.length + 1) * WORD_LENGTH;
-                while (board.children.length < tilesNeeded) {
+                while (board.children.length < (guesses.length + 1) * WORD_LENGTH) {
                     const tile = document.createElement('div');
                     tile.className = 'tile';
-                    tile.style.width = tileSize + 'px';
-                    tile.style.height = tileSize + 'px';
+                    tile.style.width = tileSize + 'px'; tile.style.height = tileSize + 'px';
                     tile.id = 'tile-' + board.children.length;
                     board.appendChild(tile);
                 }
             }
-        
+
+            const keyStates = {};
+
             for (let i = 0; i < (MAX_GUESSES === 1000 ? guesses.length + 1 : MAX_GUESSES); i++) {
                 const guess = guesses[i];
-                
                 if (guess) {
-                    // --- SMART COLOR LOGIC START ---
                     let targetLetters = targetWord.split('');
                     let statuses = Array(WORD_LENGTH).fill('absent');
-                    let guessLetters = guess.split('');
-        
-                    // First pass: Find CORRECT matches (Green)
+                    
                     for (let j = 0; j < WORD_LENGTH; j++) {
-                        if (guessLetters[j] === targetLetters[j]) {
+                        if (guess[j] === targetWord[j]) {
                             statuses[j] = 'correct';
-                            targetLetters[j] = null; // "Use up" this letter
+                            targetLetters[j] = null;
+                            keyStates[guess[j]] = 'correct';
                         }
                     }
-        
-                    // Second pass: Find PRESENT matches (Yellow)
                     for (let j = 0; j < WORD_LENGTH; j++) {
-                        if (statuses[j] === 'absent' && targetLetters.includes(guessLetters[j])) {
+                        if (statuses[j] === 'absent' && targetLetters.includes(guess[j])) {
                             statuses[j] = 'present';
-                            // "Use up" the first instance of this letter found in the remaining target
-                            targetLetters[targetLetters.indexOf(guessLetters[j])] = null;
+                            targetLetters[targetLetters.indexOf(guess[j])] = null;
+                            if (keyStates[guess[j]] !== 'correct') keyStates[guess[j]] = 'present';
+                        } else if (statuses[j] === 'absent') {
+                            if (!keyStates[guess[j]]) keyStates[guess[j]] = 'absent';
                         }
                     }
-        
-                    // Apply the statuses to the tiles
                     for (let j = 0; j < WORD_LENGTH; j++) {
                         const tile = document.getElementById('tile-' + (i * WORD_LENGTH + j));
-                        tile.textContent = guessLetters[j];
+                        tile.textContent = guess[j];
                         tile.className = 'tile ' + statuses[j];
                     }
-                    // --- SMART COLOR LOGIC END ---
-        
                 } else if (i === guesses.length) {
-                    // Current typing row
                     for (let j = 0; j < WORD_LENGTH; j++) {
                         const tile = document.getElementById('tile-' + (i * WORD_LENGTH + j));
-                        if (tile) {
-                            tile.textContent = currentGuess[j] || "";
-                            tile.className = 'tile';
-                        }
+                        if(tile) { tile.textContent = currentGuess[j] || ""; tile.className = 'tile'; }
                     }
-                } else {
-                    // Empty future rows
-                    for (let j = 0; j < WORD_LENGTH; j++) {
-                        const tile = document.getElementById('tile-' + (i * WORD_LENGTH + j));
-                        if (tile) {
-                            tile.textContent = "";
-                            tile.className = 'tile';
-                        }
-                    }
+                }
+            }
+
+            for (const [letter, status] of Object.entries(keyStates)) {
+                const keyEl = document.querySelector(`.key[data-key="${letter}"]`);
+                if (keyEl) {
+                    if (status === 'correct') { keyEl.classList.remove('present', 'absent'); keyEl.classList.add('correct'); }
+                    else if (status === 'present' && !keyEl.classList.contains('correct')) { keyEl.classList.remove('absent'); keyEl.classList.add('present'); }
+                    else if (status === 'absent' && !keyEl.classList.contains('correct') && !keyEl.classList.contains('present')) { keyEl.classList.add('absent'); }
                 }
             }
         }
 
-        function handleOneGuessScroll() {
-            const activeRowIndex = guesses.length;
-            const targetTile = document.getElementById('tile-' + (activeRowIndex * WORD_LENGTH));
-            if (targetTile) {
-                const rect = targetTile.getBoundingClientRect();
-                const safetyLine = window.innerHeight * 0.45;
-                if (rect.bottom > safetyLine) {
-                    const scrollTarget = window.pageYOffset + 56;
-                    const performScroll = () => { window.scrollTo({ top: scrollTarget, behavior: 'smooth' }); };
-                    requestAnimationFrame(performScroll);
-                }
-            }
-        }
-
-        function focusInput() { if (!gameOver) document.getElementById('hidden-input').focus(); }
-
-        document.getElementById('hidden-input').addEventListener('input', (e) => {
+        function handleInput(key) {
             if (gameOver) return;
-            let val = e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, WORD_LENGTH);
-            e.target.value = val; 
-            currentGuess = val;
-            updateBoard();
-        });
-
-        document.addEventListener('keydown', (e) => {
-            if (gameOver) return;
-            if (e.key === "Enter") {
+            if (key === 'ENTER') {
                 if (currentGuess.length !== WORD_LENGTH) return;
                 if (!currentValidList.includes(currentGuess)) {
                     document.getElementById('message').textContent = "Invalid Word";
@@ -297,19 +302,32 @@
                     return;
                 }
                 guesses.push(currentGuess);
-                if (currentGuess === targetWord) { 
-                    document.getElementById('message').textContent = "You got it! 🎉"; 
-                    gameOver = true; 
-                } else if (guesses.length === MAX_GUESSES) { 
-                    document.getElementById('message').textContent = "Word: " + targetWord; 
-                    gameOver = true; 
-                }
+                if (currentGuess === targetWord) { document.getElementById('message').textContent = "You got it! 🎉"; gameOver = true; }
+                else if (guesses.length === MAX_GUESSES) { document.getElementById('message').textContent = "Word: " + targetWord; gameOver = true; }
                 currentGuess = "";
-                document.getElementById('hidden-input').value = "";
                 updateBoard();
-                setTimeout(handleOneGuessScroll, 150);
+                setTimeout(() => {
+                    const nextRow = document.getElementById('tile-' + (guesses.length * WORD_LENGTH));
+                    if (nextRow) nextRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 100);
+            } else if (key === 'BACKSPACE') {
+                currentGuess = currentGuess.slice(0, -1);
+                updateBoard();
+            } else if (currentGuess.length < WORD_LENGTH && /^[A-Z]$/.test(key)) {
+                currentGuess += key;
+                updateBoard();
             }
-        });
+        }
+
+        function initKeyboardListeners() {
+            document.querySelectorAll('.key').forEach(key => {
+                key.addEventListener('click', () => handleInput(key.getAttribute('data-key')));
+            });
+            document.addEventListener('keydown', (e) => {
+                let key = e.key.toUpperCase();
+                if (key === 'BACKSPACE' || key === 'ENTER' || /^[A-Z]$/.test(key)) handleInput(key);
+            });
+        }
 
         loadData();
     </script>
