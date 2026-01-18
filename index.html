@@ -9,63 +9,21 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <style>
         :root { --correct: #6aaa64; --present: #c9b458; --absent: #787c7e; --tile-border: #d3d6da; --accent: #007AFF; }
-        
         html, body { width: 100%; margin: 0; padding: 0; background: #fff; -webkit-text-size-adjust: 100%; }
         body { font-family: -apple-system, sans-serif; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
-        
         header { width: 100%; border-bottom: 1px solid #eee; text-align: center; padding: 10px 0; font-weight: 800; font-size: 20px; background: white; flex-shrink: 0; }
-        
-        .controls { 
-            display: flex; flex-direction: column; align-items: center;
-            gap: 8px; padding: 10px; background: #f9f9f9; width: 100%; border-bottom: 1px solid #eee;
-            flex-shrink: 0;
-        }
-
+        .controls { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 10px; background: #f9f9f9; width: 100%; border-bottom: 1px solid #eee; flex-shrink: 0; }
         .input-row { display: flex; gap: 10px; justify-content: center; width: 100%; }
         .control-group { display: flex; align-items: center; gap: 5px; }
         .control-group label { font-size: 11px; font-weight: bold; color: #555; text-transform: uppercase; }
-
-        .box-style {
-            height: 38px !important; 
-            width: 85px !important;
-            border-radius: 8px; 
-            border: 1px solid #bbb; 
-            font-size: 14px; 
-            background: white; 
-            text-align: center;
-            -webkit-appearance: none;
-        }
-        
-        button#new-game-btn {
-            background: var(--accent); color: white; border: none; height: 38px;
-            border-radius: 8px; font-size: 14px; font-weight: bold; width: 160px;
-        }
-
-        #game-container { 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            width: 100%; 
-            padding-top: 15px;
-        }
-        
-        #board { 
-            display: grid; 
-            gap: 6px; 
-            padding-bottom: 70vh; /* Keeps space so the browser doesn't snap back to bottom */
-        }
-        
-        .tile {
-            width: 50px; height: 50px; border: 2px solid var(--tile-border);
-            display: flex; align-items: center; justify-content: center;
-            font-size: 24px; font-weight: bold; text-transform: uppercase;
-        }
-
+        .box-style { height: 38px !important; width: 85px !important; border-radius: 8px; border: 1px solid #bbb; font-size: 14px; background: white; text-align: center; -webkit-appearance: none; }
+        button#new-game-btn { background: var(--accent); color: white; border: none; height: 38px; border-radius: 8px; font-size: 14px; font-weight: bold; width: 160px; }
+        #game-container { display: flex; flex-direction: column; align-items: center; width: 100%; padding-top: 15px; }
+        #board { display: grid; gap: 6px; padding-bottom: 70vh; }
+        .tile { width: 50px; height: 50px; border: 2px solid var(--tile-border); display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; text-transform: uppercase; }
         .correct { background: var(--correct); color: white; border-color: var(--correct); }
         .present { background: var(--present); color: white; border-color: var(--present); }
         .absent { background: var(--absent); color: white; border-color: var(--absent); }
-
-        /* Changed to fixed so it doesn't move with the scroll */
         #hidden-input { position: fixed; top: 0; left: 0; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
         .message { font-size: 16px; font-weight: 700; color: #333; height: 20px; margin-bottom: 5px; }
     </style>
@@ -132,7 +90,10 @@
         function resetGame() {
             WORD_LENGTH = parseInt(document.getElementById('lenSelect').value) || 5;
             MAX_GUESSES = parseInt(document.getElementById('guessSelect').value) || 6;
+            
+            // Limit the physical input
             document.getElementById('hidden-input').setAttribute('maxlength', WORD_LENGTH);
+
             const data = ALL_DATA[WORD_LENGTH];
             if (!data) return;
             targetWord = data.answers[Math.floor(Math.random() * data.answers.length)].toUpperCase();
@@ -160,6 +121,7 @@
                 board.appendChild(tile);
             }
             window.scrollTo(0, 0);
+            updateBoard();
         }
 
         function updateBoard() {
@@ -186,18 +148,12 @@
         function handleOneGuessScroll() {
             const activeRowIndex = guesses.length;
             const targetTile = document.getElementById('tile-' + (activeRowIndex * WORD_LENGTH));
-            
             if (targetTile) {
                 const rect = targetTile.getBoundingClientRect();
-                const safetyLine = window.innerHeight * 0.45; // Move slightly earlier to be safe
-                
+                const safetyLine = window.innerHeight * 0.45;
                 if (rect.bottom > safetyLine) {
                     const scrollTarget = window.pageYOffset + 56;
-                    
-                    // Force the scroll using a requestAnimationFrame loop to override browser snap-back
-                    const performScroll = () => {
-                        window.scrollTo({ top: scrollTarget, behavior: 'smooth' });
-                    };
+                    const performScroll = () => { window.scrollTo({ top: scrollTarget, behavior: 'smooth' }); };
                     requestAnimationFrame(performScroll);
                 }
             }
@@ -207,7 +163,11 @@
 
         document.getElementById('hidden-input').addEventListener('input', (e) => {
             if (gameOver) return;
-            currentGuess = e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, WORD_LENGTH);
+            // Clean value and ensure it never exceeds WORD_LENGTH in the actual input box
+            let val = e.target.value.toUpperCase().replace(/[^A-Z]/g, '');
+            if (val.length > WORD_LENGTH) val = val.slice(0, WORD_LENGTH);
+            e.target.value = val; 
+            currentGuess = val;
             updateBoard();
         });
 
@@ -228,27 +188,13 @@
                     document.getElementById('message').textContent = "Word: " + targetWord; 
                     gameOver = true; 
                 }
+                
+                // Clear state
                 currentGuess = "";
-          document.getElementById('hidden-input').value = ""; // Clear the input buffer
-                updateBoard(); // Force the colors to update NOW
-            if (gameOver) return;
-
-            // 1. Clean the input (Upper case and letters only)
-            let val = e.target.value.toUpperCase().replace(/[^A-Z]/g, '');
-
-            // 2. If it exceeds the length, truncate the ACTUAL input field
-            if (val.length > WORD_LENGTH) {
-                val = val.slice(0, WORD_LENGTH);
-            }
-
-            // 3. Sync the hidden input field with the truncated value
-            // This prevents the "GY" from existing in the input's memory
-            e.target.value = val;
-
-            currentGuess = val;
-            updateBoard();
-        });
-                // Allow the DOM and keyboard to settle, then nudge
+                document.getElementById('hidden-input').value = "";
+                
+                // Refresh board immediately to show colors
+                updateBoard();
                 setTimeout(handleOneGuessScroll, 150);
             }
         });
