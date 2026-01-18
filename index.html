@@ -9,21 +9,62 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <style>
         :root { --correct: #6aaa64; --present: #c9b458; --absent: #787c7e; --tile-border: #d3d6da; --accent: #007AFF; }
+        
         html, body { width: 100%; margin: 0; padding: 0; background: #fff; -webkit-text-size-adjust: 100%; }
         body { font-family: -apple-system, sans-serif; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+        
         header { width: 100%; border-bottom: 1px solid #eee; text-align: center; padding: 10px 0; font-weight: 800; font-size: 20px; background: white; flex-shrink: 0; }
-        .controls { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 10px; background: #f9f9f9; width: 100%; border-bottom: 1px solid #eee; flex-shrink: 0; }
+        
+        .controls { 
+            display: flex; flex-direction: column; align-items: center;
+            gap: 8px; padding: 10px; background: #f9f9f9; width: 100%; border-bottom: 1px solid #eee;
+            flex-shrink: 0;
+        }
+
         .input-row { display: flex; gap: 10px; justify-content: center; width: 100%; }
         .control-group { display: flex; align-items: center; gap: 5px; }
         .control-group label { font-size: 11px; font-weight: bold; color: #555; text-transform: uppercase; }
-        .box-style { height: 38px !important; width: 85px !important; border-radius: 8px; border: 1px solid #bbb; font-size: 14px; background: white; text-align: center; -webkit-appearance: none; }
-        button#new-game-btn { background: var(--accent); color: white; border: none; height: 38px; border-radius: 8px; font-size: 14px; font-weight: bold; width: 160px; }
-        #game-container { display: flex; flex-direction: column; align-items: center; width: 100%; padding-top: 15px; }
-        #board { display: grid; gap: 6px; padding-bottom: 70vh; }
-        .tile { width: 50px; height: 50px; border: 2px solid var(--tile-border); display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; text-transform: uppercase; }
+
+        .box-style {
+            height: 38px !important; 
+            width: 85px !important;
+            border-radius: 8px; 
+            border: 1px solid #bbb; 
+            font-size: 14px; 
+            background: white; 
+            text-align: center;
+            -webkit-appearance: none;
+        }
+        
+        button#new-game-btn {
+            background: var(--accent); color: white; border: none; height: 38px;
+            border-radius: 8px; font-size: 14px; font-weight: bold; width: 160px;
+        }
+
+        #game-container { 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            width: 100%; 
+            padding-top: 15px;
+        }
+        
+        #board { 
+            display: grid; 
+            gap: 6px; 
+            padding-bottom: 70vh; 
+        }
+        
+        .tile {
+            width: 50px; height: 50px; border: 2px solid var(--tile-border);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 24px; font-weight: bold; text-transform: uppercase;
+        }
+
         .correct { background: var(--correct); color: white; border-color: var(--correct); }
         .present { background: var(--present); color: white; border-color: var(--present); }
         .absent { background: var(--absent); color: white; border-color: var(--absent); }
+
         #hidden-input { position: fixed; top: 0; left: 0; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
         .message { font-size: 16px; font-weight: 700; color: #333; height: 20px; margin-bottom: 5px; }
     </style>
@@ -59,7 +100,7 @@
     </div>
 
     <script>
-        let ALL_DATA = null;
+        let ALL_DATA = {};
         let WORD_LENGTH = 5;
         let MAX_GUESSES = 6;
         let targetWord = "";
@@ -70,10 +111,12 @@
 
         async function loadData() {
             try {
-                const response = await fetch('words.json');
-                ALL_DATA = await response.json();
+                // Fetch the manifest file from your folder
+                const response = await fetch('word_lists/lengths.txt');
+                const text = await response.text();
+                const lengths = text.split(',').map(n => n.trim()).sort((a, b) => a - b);
+
                 const selector = document.getElementById('lenSelect');
-                const lengths = Object.keys(ALL_DATA).sort((a,b) => a-b);
                 selector.innerHTML = "";
                 lengths.forEach(len => {
                     let opt = document.createElement('option');
@@ -83,21 +126,44 @@
                 });
                 resetGame();
             } catch (e) {
-                document.getElementById('message').textContent = "File Error";
+                document.getElementById('message').textContent = "Manifest Error";
             }
         }
 
-        function resetGame() {
+        async function resetGame() {
             WORD_LENGTH = parseInt(document.getElementById('lenSelect').value) || 5;
             MAX_GUESSES = parseInt(document.getElementById('guessSelect').value) || 6;
             
-            // Limit the physical input
+            // Sync input limit
             document.getElementById('hidden-input').setAttribute('maxlength', WORD_LENGTH);
 
+            // Fetch specific word list if not already loaded
+            if (!ALL_DATA[WORD_LENGTH]) {
+                document.getElementById('message').textContent = "Loading words...";
+                try {
+                    const [ansRes, gueRes] = await Promise.all([
+                        fetch(`word_lists/answer_list_${WORD_LENGTH}.txt`),
+                        fetch(`word_lists/guess_list_${WORD_LENGTH}.txt`)
+                    ]);
+                    const ansText = await ansRes.text();
+                    const gueText = await gueRes.text();
+
+                    const answers = ansText.split(/\r?\n/).map(w => w.trim().toUpperCase()).filter(w => w.length === WORD_LENGTH);
+                    const valid = gueText.split(/\r?\n/).map(w => w.trim().toUpperCase()).filter(w => w.length === WORD_LENGTH);
+
+                    ALL_DATA[WORD_LENGTH] = {
+                        answers: answers,
+                        valid: [...new Set([...answers, ...valid])]
+                    };
+                } catch (e) {
+                    document.getElementById('message').textContent = "File Load Error";
+                    return;
+                }
+            }
+
             const data = ALL_DATA[WORD_LENGTH];
-            if (!data) return;
-            targetWord = data.answers[Math.floor(Math.random() * data.answers.length)].toUpperCase();
-            currentValidList = data.valid.map(v => v.toUpperCase());
+            targetWord = data.answers[Math.floor(Math.random() * data.answers.length)];
+            currentValidList = data.valid;
             guesses = [];
             currentGuess = "";
             gameOver = false;
@@ -106,13 +172,12 @@
             initBoard();
         }
 
-       function initBoard() {
+        function initBoard() {
             const board = document.getElementById('board');
             board.innerHTML = "";
             const tileSize = WORD_LENGTH > 6 ? 42 : 50;
             board.style.gridTemplateColumns = `repeat(${WORD_LENGTH}, ${tileSize}px)`;
             
-            // Draw initial rows: if unlimited, start with 1, otherwise draw the full amount
             let rowsToDraw = MAX_GUESSES === 1000 ? 1 : MAX_GUESSES;
             for (let i = 0; i < rowsToDraw * WORD_LENGTH; i++) {
                 const tile = document.createElement('div');
@@ -124,48 +189,38 @@
             }
             window.scrollTo(0, 0);
             updateBoard();
-        } 
+        }
 
         function updateBoard() {
             const board = document.getElementById('board');
-            
-            // In Unlimited mode, we need to ensure the board has enough rows
-            // Total rows needed = past guesses + 1 (the current typing row)
+            const tileSize = WORD_LENGTH > 6 ? 42 : 50;
+
+            // Grow board dynamically for Unlimited mode
             if (MAX_GUESSES === 1000) {
-                const totalTilesNeeded = (guesses.length + 1) * WORD_LENGTH;
-                const currentTiles = board.children.length;
-                
-                if (totalTilesNeeded > currentTiles) {
-                    const tileSize = WORD_LENGTH > 6 ? 42 : 50;
-                    for (let i = 0; i < WORD_LENGTH; i++) {
-                        const tile = document.createElement('div');
-                        tile.className = 'tile';
-                        tile.style.width = tileSize + 'px';
-                        tile.style.height = tileSize + 'px';
-                        tile.id = 'tile-' + (currentTiles + i);
-                        board.appendChild(tile);
-                    }
+                const tilesNeeded = (guesses.length + 1) * WORD_LENGTH;
+                while (board.children.length < tilesNeeded) {
+                    const tile = document.createElement('div');
+                    tile.className = 'tile';
+                    tile.style.width = tileSize + 'px';
+                    tile.style.height = tileSize + 'px';
+                    tile.id = 'tile-' + board.children.length;
+                    board.appendChild(tile);
                 }
             }
 
-            // Now, fill the tiles with letters and colors as before
             for (let i = 0; i < (MAX_GUESSES === 1000 ? guesses.length + 1 : MAX_GUESSES); i++) {
                 for (let j = 0; j < WORD_LENGTH; j++) {
                     const tile = document.getElementById('tile-' + (i * WORD_LENGTH + j));
                     if (!tile) continue;
-                    
                     if (guesses[i]) {
-                        // Past guesses: show letters and colors
                         tile.textContent = guesses[i][j];
                         if (targetWord[j] === guesses[i][j]) tile.className = 'tile correct';
                         else if (targetWord.includes(guesses[i][j])) tile.className = 'tile present';
                         else tile.className = 'tile absent';
                     } else if (i === guesses.length) {
-                        // Current typing row: show letters only, no colors
                         tile.textContent = currentGuess[j] || "";
                         tile.className = 'tile';
                     } else {
-                        // Future rows (fixed attempts mode): stay empty
                         tile.textContent = "";
                         tile.className = 'tile';
                     }
@@ -191,9 +246,7 @@
 
         document.getElementById('hidden-input').addEventListener('input', (e) => {
             if (gameOver) return;
-            // Clean value and ensure it never exceeds WORD_LENGTH in the actual input box
-            let val = e.target.value.toUpperCase().replace(/[^A-Z]/g, '');
-            if (val.length > WORD_LENGTH) val = val.slice(0, WORD_LENGTH);
+            let val = e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, WORD_LENGTH);
             e.target.value = val; 
             currentGuess = val;
             updateBoard();
@@ -216,12 +269,8 @@
                     document.getElementById('message').textContent = "Word: " + targetWord; 
                     gameOver = true; 
                 }
-                
-                // Clear state
                 currentGuess = "";
                 document.getElementById('hidden-input').value = "";
-                
-                // Refresh board immediately to show colors
                 updateBoard();
                 setTimeout(handleOneGuessScroll, 150);
             }
