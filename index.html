@@ -451,14 +451,17 @@
                 }
             }
 
+            if (!ALL_DATA[len].answers.includes(word)) {
+                errorEl.textContent = 'Word not in answer list.';
+                return;
+            }
+
             closeCreateModal();
 
             WORD_LENGTH = len;
             MAX_GUESSES = guessCount;
             targetWord = word;
-            currentValidList = ALL_DATA[len].valid.includes(word)
-                ? ALL_DATA[len].valid
-                : [word, ...ALL_DATA[len].valid];
+            currentValidList = ALL_DATA[len].valid;
 
             guesses = [];
             currentGuess = "";
