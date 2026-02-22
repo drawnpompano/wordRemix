@@ -50,11 +50,6 @@
             background: var(--bg); color: var(--text); text-align: center; -webkit-appearance: none;
         }
         
-        button#new-game-btn {
-            background: var(--accent); color: white; border: none; height: 38px;
-            border-radius: 8px; font-size: 14px; font-weight: bold; width: 160px;
-        }
-
         #game-container { display: flex; flex-direction: column; align-items: center; width: 100%; padding-top: 15px; }
         #board { display: grid; gap: 6px; padding-bottom: 20px; }
         
@@ -80,6 +75,49 @@
         }
         .spacer { flex: 0.5; }
         .wide-key { flex: 1.5; font-size: 11px; }
+
+        .button-row { display: flex; gap: 8px; justify-content: center; width: 100%; }
+        button#new-game-btn {
+            background: var(--accent); color: white; border: none; height: 38px;
+            border-radius: 8px; font-size: 14px; font-weight: bold; flex: 1; max-width: 140px;
+        }
+        button#create-btn {
+            background: #5c6bc0; color: white; border: none; height: 38px;
+            border-radius: 8px; font-size: 13px; font-weight: bold; flex: 1; max-width: 165px; cursor: pointer;
+        }
+
+        #create-modal { display: none; position: fixed; inset: 0; z-index: 100; }
+        .modal-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.5); }
+        .modal-box {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: var(--bg); color: var(--text); border-radius: 16px;
+            padding: 24px; width: 290px; box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+            display: flex; flex-direction: column; gap: 16px;
+        }
+        .modal-box h2 { margin: 0; font-size: 20px; font-weight: 800; text-align: center; }
+        .modal-box p { margin: -8px 0 0; font-size: 13px; text-align: center; color: var(--absent); }
+        .modal-field { display: flex; flex-direction: column; gap: 6px; }
+        .modal-field label { font-size: 11px; font-weight: bold; color: var(--absent); text-transform: uppercase; }
+        .modal-field input {
+            height: 52px; border-radius: 8px; border: 2px solid var(--tile-border);
+            font-size: 22px; font-weight: bold; background: var(--bg); color: var(--text);
+            text-align: center; text-transform: uppercase; letter-spacing: 6px;
+            -webkit-appearance: none; outline: none; width: 100%; box-sizing: border-box;
+        }
+        .modal-field input:focus { border-color: var(--accent); }
+        .modal-field select {
+            height: 44px; border-radius: 8px; border: 1px solid var(--tile-border);
+            font-size: 15px; background: var(--bg); color: var(--text);
+            text-align: center; -webkit-appearance: none; padding: 0 12px; width: 100%; box-sizing: border-box;
+        }
+        .create-error { font-size: 13px; color: #e53935; text-align: center; min-height: 18px; }
+        .modal-actions { display: flex; gap: 10px; }
+        .modal-actions button {
+            flex: 1; height: 46px; border-radius: 8px; border: none;
+            font-size: 15px; font-weight: bold; cursor: pointer;
+        }
+        .modal-actions button.cancel-btn { background: var(--key-bg); color: var(--key-text); }
+        .modal-actions button.submit-btn { background: #5c6bc0; color: white; }
     </style>
 </head>
 <body>
@@ -104,7 +142,10 @@
                 </select>
             </div>
         </div>
-        <button id="new-game-btn" onclick="resetGame()">NEW GAME</button>
+        <div class="button-row">
+            <button id="new-game-btn" onclick="resetGame()">NEW GAME</button>
+            <button id="create-btn" onclick="openCreateModal()">Create a Dashle</button>
+        </div>
     </div>
 
     <div id="game-container">
@@ -136,6 +177,35 @@
             <button class="key" data-key="B">B</button><button class="key" data-key="N">N</button>
             <button class="key" data-key="M">M</button>
             <button class="key wide-key" data-key="BACKSPACE">⌫</button>
+        </div>
+    </div>
+
+    <div id="create-modal">
+        <div class="modal-overlay" onclick="closeCreateModal()"></div>
+        <div class="modal-box">
+            <h2>Create a Dashle</h2>
+            <p>Pick a word for someone else to guess</p>
+            <div class="modal-field">
+                <label>Your Word (2–5 letters)</label>
+                <input type="text" id="custom-word" maxlength="5" placeholder="WORD" autocomplete="off" autocorrect="off" spellcheck="false" />
+            </div>
+            <div class="create-error" id="create-error"></div>
+            <div class="modal-field">
+                <label>Number of Guesses</label>
+                <select id="custom-guesses">
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6" selected>6</option>
+                    <option value="1000">Unlimited</option>
+                </select>
+            </div>
+            <div class="modal-actions">
+                <button class="cancel-btn" onclick="closeCreateModal()">Cancel</button>
+                <button class="submit-btn" onclick="createCustomDashle()">Create</button>
+            </div>
         </div>
     </div>
 
@@ -327,6 +397,77 @@
                 let key = e.key.toUpperCase();
                 if (key === 'BACKSPACE' || key === 'ENTER' || /^[A-Z]$/.test(key)) handleInput(key);
             });
+        }
+
+        function openCreateModal() {
+            document.getElementById('custom-word').value = '';
+            document.getElementById('custom-guesses').value = '6';
+            document.getElementById('create-error').textContent = '';
+            document.getElementById('create-modal').style.display = 'block';
+            setTimeout(() => document.getElementById('custom-word').focus(), 50);
+        }
+
+        function closeCreateModal() {
+            document.getElementById('create-modal').style.display = 'none';
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (document.getElementById('create-modal').style.display === 'block' && e.key === 'Escape') {
+                closeCreateModal();
+            }
+        });
+
+        async function createCustomDashle() {
+            const word = document.getElementById('custom-word').value.trim().toUpperCase().replace(/[^A-Z]/g, '');
+            const guessCount = parseInt(document.getElementById('custom-guesses').value);
+            const errorEl = document.getElementById('create-error');
+
+            if (word.length < 2 || word.length > 5) {
+                errorEl.textContent = 'Word must be 2–5 letters long.';
+                return;
+            }
+            if (!/^[A-Z]+$/.test(word)) {
+                errorEl.textContent = 'Only letters allowed.';
+                return;
+            }
+
+            const len = word.length;
+            if (!ALL_DATA[len]) {
+                errorEl.textContent = 'Loading word list…';
+                try {
+                    const [ansRes, gueRes] = await Promise.all([
+                        fetch(`word_lists/answer_list_${len}.txt`),
+                        fetch(`word_lists/guess_list_${len}.txt`)
+                    ]);
+                    const ansText = await ansRes.text();
+                    const gueText = await gueRes.text();
+                    ALL_DATA[len] = {
+                        answers: ansText.split(/\r?\n/).map(w => w.trim().toUpperCase()).filter(w => w.length === len),
+                        valid: [...new Set([...ansText.split(/\r?\n/), ...gueText.split(/\r?\n/)])].map(w => w.trim().toUpperCase()).filter(w => w.length === len)
+                    };
+                } catch (e) {
+                    errorEl.textContent = 'Load error — please try again.';
+                    return;
+                }
+            }
+
+            closeCreateModal();
+
+            WORD_LENGTH = len;
+            MAX_GUESSES = guessCount;
+            targetWord = word;
+            currentValidList = ALL_DATA[len].valid.includes(word)
+                ? ALL_DATA[len].valid
+                : [word, ...ALL_DATA[len].valid];
+
+            guesses = [];
+            currentGuess = "";
+            gameOver = false;
+            document.getElementById('message').textContent = "";
+            document.querySelectorAll('.key').forEach(k => k.className = 'key' + (k.classList.contains('wide-key') ? ' wide-key' : ''));
+            document.getElementById('lenSelect').value = len;
+            document.getElementById('guessSelect').value = guessCount;
+            initBoard();
         }
 
         loadData();
