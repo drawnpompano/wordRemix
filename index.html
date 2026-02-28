@@ -63,6 +63,15 @@
         .present { background: var(--present) !important; color: white !important; border-color: var(--present) !important; }
         .absent { background: var(--absent) !important; color: white !important; border-color: var(--absent) !important; }
 
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%       { transform: translateX(-6px); }
+            40%       { transform: translateX(6px); }
+            60%       { transform: translateX(-4px); }
+            80%       { transform: translateX(4px); }
+        }
+        .shake { animation: shake 0.4s ease; }
+
         .message { font-size: 16px; font-weight: 700; height: 20px; margin-bottom: 10px; text-align: center; }
 
         #keyboard { margin-top: auto; padding: 0 8px 30px 8px; width: 100%; max-width: 500px; }
@@ -368,6 +377,14 @@
                 if (currentGuess.length !== WORD_LENGTH) return;
                 if (!currentValidList.includes(currentGuess)) {
                     document.getElementById('message').textContent = "Invalid Word";
+                    const rowStart = guesses.length * WORD_LENGTH;
+                    for (let j = 0; j < WORD_LENGTH; j++) {
+                        const tile = document.getElementById('tile-' + (rowStart + j));
+                        if (tile) {
+                            tile.classList.add('shake');
+                            tile.addEventListener('animationend', () => tile.classList.remove('shake'), { once: true });
+                        }
+                    }
                     setTimeout(() => { if(!gameOver) document.getElementById('message').textContent = ""; }, 2000);
                     return;
                 }
