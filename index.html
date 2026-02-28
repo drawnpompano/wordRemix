@@ -227,6 +227,7 @@
         let currentGuess = "";
         let gameOver = false;
         let currentValidList = [];
+        let animatingRow = -1;
 
         function toggleTheme() {
             const body = document.body;
@@ -351,7 +352,7 @@
                     for (let j = 0; j < WORD_LENGTH; j++) {
                         const tile = document.getElementById('tile-' + (i * WORD_LENGTH + j));
                         tile.textContent = guess[j];
-                        tile.className = 'tile ' + statuses[j];
+                        if (i !== animatingRow) tile.className = 'tile ' + statuses[j];
                     }
                 } else if (i === guesses.length) {
                     for (let j = 0; j < WORD_LENGTH; j++) {
@@ -361,14 +362,38 @@
                 }
             }
 
-            for (const [letter, status] of Object.entries(keyStates)) {
-                const keyEl = document.querySelector(`.key[data-key="${letter}"]`);
-                if (keyEl) {
-                    if (status === 'correct') { keyEl.classList.remove('present', 'absent'); keyEl.classList.add('correct'); }
-                    else if (status === 'present' && !keyEl.classList.contains('correct')) { keyEl.classList.remove('absent'); keyEl.classList.add('present'); }
-                    else if (status === 'absent' && !keyEl.classList.contains('correct') && !keyEl.classList.contains('present')) { keyEl.classList.add('absent'); }
+            if (animatingRow === -1) {
+                for (const [letter, status] of Object.entries(keyStates)) {
+                    const keyEl = document.querySelector(`.key[data-key="${letter}"]`);
+                    if (keyEl) {
+                        if (status === 'correct') { keyEl.classList.remove('present', 'absent'); keyEl.classList.add('correct'); }
+                        else if (status === 'present' && !keyEl.classList.contains('correct')) { keyEl.classList.remove('absent'); keyEl.classList.add('present'); }
+                        else if (status === 'absent' && !keyEl.classList.contains('correct') && !keyEl.classList.contains('present')) { keyEl.classList.add('absent'); }
+                    }
                 }
             }
+        }
+
+        function flipRevealRow(rowIndex, statuses) {
+            animatingRow = rowIndex;
+            const HALF = 150;
+            const STAGGER = 300;
+            for (let j = 0; j < WORD_LENGTH; j++) {
+                const tile = document.getElementById('tile-' + (rowIndex * WORD_LENGTH + j));
+                const status = statuses[j];
+                const delay = j * STAGGER;
+                setTimeout(() => {
+                    tile.style.transition = `transform ${HALF}ms ease-in`;
+                    tile.style.transform = 'scaleY(0)';
+                    setTimeout(() => {
+                        tile.className = 'tile ' + status;
+                        tile.style.transition = `transform ${HALF}ms ease-out`;
+                        tile.style.transform = 'scaleY(1)';
+                        setTimeout(() => { tile.style.transition = ''; tile.style.transform = ''; }, HALF);
+                    }, HALF);
+                }, delay);
+            }
+            setTimeout(() => { animatingRow = -1; updateBoard(); }, (WORD_LENGTH - 1) * STAGGER + HALF * 2);
         }
 
         function handleInput(key) {
@@ -388,10 +413,25 @@
                     setTimeout(() => { if(!gameOver) document.getElementById('message').textContent = ""; }, 2000);
                     return;
                 }
-                guesses.push(currentGuess);
-                if (currentGuess === targetWord) { document.getElementById('message').textContent = "You got it! 🎉"; gameOver = true; }
+                const submittedWord = currentGuess;
+                guesses.push(submittedWord);
+                if (submittedWord === targetWord) { document.getElementById('message').textContent = "You got it! 🎉"; gameOver = true; }
                 else if (guesses.length === MAX_GUESSES) { document.getElementById('message').textContent = "Word: " + targetWord; gameOver = true; }
+
+                // Compute statuses for the flip animation
+                let tgtLetters = targetWord.split('');
+                const statuses = Array(WORD_LENGTH).fill('absent');
+                for (let j = 0; j < WORD_LENGTH; j++) {
+                    if (submittedWord[j] === targetWord[j]) { statuses[j] = 'correct'; tgtLetters[j] = null; }
+                }
+                for (let j = 0; j < WORD_LENGTH; j++) {
+                    if (statuses[j] === 'absent' && tgtLetters.includes(submittedWord[j])) {
+                        statuses[j] = 'present'; tgtLetters[tgtLetters.indexOf(submittedWord[j])] = null;
+                    }
+                }
+
                 currentGuess = "";
+                flipRevealRow(guesses.length - 1, statuses);
                 updateBoard();
                 setTimeout(() => {
                     const nextRow = document.getElementById('tile-' + (guesses.length * WORD_LENGTH));
